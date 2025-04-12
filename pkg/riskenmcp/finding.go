@@ -25,7 +25,11 @@ func FindingResourceContentsHandler(riskenClient *risken.Client) func(ctx contex
 		// Parse arguments
 		projectID, ok := request.Params.Arguments["project_id"].([]string)
 		if !ok || len(projectID) == 0 {
-			return nil, errors.New("project_id is required")
+			p, err := GetCurrentProject(ctx, riskenClient)
+			if err != nil {
+				return nil, errors.New("failed to get project")
+			}
+			projectID = []string{strconv.FormatUint(uint64(p.ProjectId), 10)}
 		}
 		projectIDUint, err := strconv.ParseUint(projectID[0], 10, 32)
 		if err != nil {
