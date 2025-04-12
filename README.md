@@ -35,7 +35,8 @@ wip
         "RISKEN_ACCESS_TOKEN",
         "-e",
         "RISKEN_URL",
-        "ghcr.io/ca-risken/risken-mcp-server"
+        "ghcr.io/ca-risken/risken-mcp-server",
+        "stdio"
       ],
       "env": {
         "RISKEN_ACCESS_TOKEN": "your_access_token",
