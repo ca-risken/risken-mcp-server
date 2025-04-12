@@ -38,5 +38,5 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/ca-risken/risken-mcp-server/mcp-server:latest
-            ghcr.io/ca-risken/risken-mcp-server/mcp-server:${{ github.sha }}
+            ghcr.io/ca-risken/risken-mcp-server:latest
+            ghcr.io/ca-risken/risken-mcp-server:${{ github.sha }}
