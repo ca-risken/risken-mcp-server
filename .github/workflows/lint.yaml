@@ -2,18 +2,18 @@ name: Lint
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/lint.yaml'
-      - 'risken-mcp-server/cmd/**'
-      - 'risken-mcp-server/pkg/**'
-      - 'risken-mcp-server/go.*'
-      - 'risken-mcp-server/.golangci.yml'
+  # push:
+  #   branches:
+  #     - main
+  # pull_request:
+  #   branches:
+  #     - main
+  #   paths:
+  #     - '.github/workflows/lint.yaml'
+  #     - 'risken-mcp-server/cmd/**'
+  #     - 'risken-mcp-server/pkg/**'
+  #     - 'risken-mcp-server/go.*'
+  #     - 'risken-mcp-server/.golangci.yml'
 
 permissions:
   contents: read
