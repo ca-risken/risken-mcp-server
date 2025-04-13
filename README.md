@@ -61,7 +61,14 @@ wip
   - `data_source` - Search by data source.
   - `resource_name` - Search by resource name.
   - `from_score` - Search by minimum score.
+    - `0.0` ~ `0.3` - Low
+    - `0.3` ~ `0.6` - Medium
+    - `0.6` ~ `0.8` - High
+    - `0.8` ~ `1.0` - Critical
   - `status` - Search by status.
+    - `0` - All
+    - `1` - Active (default)
+    - `2` - Pending
   - `offset` - Search by offset.
   - `limit` - Search by limit.
 
