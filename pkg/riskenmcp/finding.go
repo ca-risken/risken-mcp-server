@@ -58,6 +58,13 @@ func FindingResourceContentsHandler(riskenClient *risken.Client) func(ctx contex
 	}
 }
 
+type SearchFindingResponse struct {
+	Findings []*finding.Finding `json:"findings,omitempty"`
+	Total    uint32             `json:"total"`
+	Offset   int32              `json:"offset"`
+	Limit    int32              `json:"limit"`
+}
+
 func SearchFinding(riskenClient *risken.Client) (tool mcp.Tool, handler server.ToolHandlerFunc) {
 	return mcp.NewTool("search_finding",
 			mcp.WithDescription("Search RISKEN findings. Use this when a request include \"finding\", \"issue\", \"ファインディング\", \"問題\"..."),
@@ -109,12 +116,19 @@ func SearchFinding(riskenClient *risken.Client) (tool mcp.Tool, handler server.T
 			if err != nil {
 				return mcp.NewToolResultError(fmt.Sprintf("failed to parse params: %s", err)), nil
 			}
+
 			// Call RISKEN API
 			findings, err := riskenClient.ListFinding(ctx, params)
 			if err != nil {
 				return mcp.NewToolResultError(fmt.Sprintf("failed to get findings: %s", err)), nil
 			}
-			searchResult := []*finding.Finding{}
+
+			searchResult := &SearchFindingResponse{
+				Findings: []*finding.Finding{},
+				Total:    uint32(findings.Total),
+				Offset:   int32(params.Offset),
+				Limit:    int32(params.Limit),
+			}
 			for _, fid := range findings.FindingId {
 				finding, err := riskenClient.GetFinding(ctx, &finding.GetFindingRequest{
 					ProjectId: params.ProjectId,
@@ -123,7 +137,7 @@ func SearchFinding(riskenClient *risken.Client) (tool mcp.Tool, handler server.T
 				if err != nil {
 					return mcp.NewToolResultError(fmt.Sprintf("failed to get finding: %s", err)), nil
 				}
-				searchResult = append(searchResult, finding.Finding)
+				searchResult.Findings = append(searchResult.Findings, finding.Finding)
 			}
 			jsonData, err := json.Marshal(searchResult)
 			if err != nil {
