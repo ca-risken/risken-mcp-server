@@ -65,6 +65,7 @@ func runStdioServer() error {
 	riskenClient := risken.NewClient(token, risken.WithAPIEndpoint(url))
 
 	// Start server
+	// logging.Logger.Info("starting RISKEN MCP server...")
 	riskenServer := riskenmcp.NewServer(riskenClient, ServerName, ServerVersion)
 	errC := make(chan error, 1)
 	go func() {

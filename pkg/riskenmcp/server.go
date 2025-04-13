@@ -9,7 +9,7 @@ func NewServer(riskenClient *risken.Client, name, version string, opts ...server
 	// Add default options
 	defaultOpts := []server.ServerOption{
 		server.WithResourceCapabilities(true, true),
-		server.WithLogging(),
+		server.WithRecovery(),
 	}
 	opts = append(defaultOpts, opts...)
 
