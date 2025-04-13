@@ -65,6 +65,18 @@ wip
   - `offset` - Search by offset.
   - `limit` - Search by limit.
 
+- *archive_finding* - Archive RISKEN finding.
+  - `finding_id` - Archive by finding ID.
+  - `note` - Note.
+
+### Alert
+
+- *search_alert* - Search RISKEN alert.
+  - `status` - Search by status.
+    - `1` - Active
+    - `2` - Pending
+    - `3` - Deactive (already closed)
+
 ## Resources
 
 ### Finding Contents
