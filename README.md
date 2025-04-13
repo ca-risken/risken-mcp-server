@@ -16,11 +16,7 @@ The RISKEN MCP Server is a [Model Context Protocol (MCP)](https://modelcontextpr
 
 ## Installation
 
-### Claude Desktop
-
-wip
-
-### Cursor
+Please add the following MCP server configuration to your [Claude Desktop](https://claude.ai/download) or [Cursor](https://www.cursor.com/) settings.
 
 ```json
 {
