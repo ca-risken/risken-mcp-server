@@ -32,7 +32,8 @@ func SearchFinding(riskenClient *risken.Client) (tool mcp.Tool, handler server.T
 			),
 			mcp.WithArray(
 				"data_source",
-				mcp.Description("RISKEN DataSource. e.g. aws, google, code, osint, diagnosis, azure, ..."),
+				mcp.Description("RISKEN DataSource. e.g. aws, google, code (like github, gitlab, etc.), osint, diagnosis, azure, ..."),
+				mcp.Enum("aws", "google", "code", "osint", "diagnosis", "azure"),
 			),
 			mcp.WithArray(
 				"resource_name",
@@ -141,19 +142,23 @@ func ParseSearchFindingParams(ctx context.Context, riskenClient *risken.Client, 
 		return param, nil // alert_id is specified, so return immediately
 	}
 
-	dataSource, err := helper.ParseMCPArgs[[]string]("data_source", req.Params.Arguments)
+	dataSource, err := helper.ParseMCPArgs[[]any]("data_source", req.Params.Arguments)
 	if err != nil {
 		return nil, fmt.Errorf("data_source error: %s", err)
 	}
 	if dataSource != nil {
-		param.DataSource = *dataSource
+		for _, v := range *dataSource {
+			param.DataSource = append(param.DataSource, fmt.Sprintf("%v", v))
+		}
 	}
-	resourceName, err := helper.ParseMCPArgs[[]string]("resource_name", req.Params.Arguments)
+	resourceName, err := helper.ParseMCPArgs[[]any]("resource_name", req.Params.Arguments)
 	if err != nil {
 		return nil, fmt.Errorf("resource_name error: %s", err)
 	}
 	if resourceName != nil {
-		param.ResourceName = *resourceName
+		for _, v := range *resourceName {
+			param.ResourceName = append(param.ResourceName, fmt.Sprintf("%v", v))
+		}
 	}
 	fromScore, err := helper.ParseMCPArgs[float64]("from_score", req.Params.Arguments)
 	if err != nil {
