@@ -49,7 +49,31 @@ wip
 
 ## Tools
 
+### Project
+
+- *get_project* - Get RISKEN project.
+
+### Finding
+
+- *search_finding* - Search RISKEN findings.
+  - `finding_id` - Search by finding ID.
+  - `alert_id` - Search by alert ID.
+  - `data_source` - Search by data source.
+  - `resource_name` - Search by resource name.
+  - `from_score` - Search by minimum score.
+  - `status` - Search by status.
+  - `offset` - Search by offset.
+  - `limit` - Search by limit.
+
 ## Resources
+
+### Finding Contents
+
+- *Get Finding Contents* Retrieves the content of a specific finding.
+  - *Template*: `finding://{project_id}/{finding_id}`
+  - *Parameters*:
+    - `project_id`: The ID of the project.
+    - `finding_id`: The ID of the finding.
 
 ## License
 
