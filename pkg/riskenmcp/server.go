@@ -26,6 +26,7 @@ func NewServer(riskenClient *risken.Client, name, version string, opts ...server
 	// Add tools
 	s.AddTool(GetProject(riskenClient))
 	s.AddTool(SearchFinding(riskenClient))
+	s.AddTool(ArchiveFinding(riskenClient))
 
 	return s
 }
