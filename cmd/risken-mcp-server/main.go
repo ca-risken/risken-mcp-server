@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -38,7 +37,6 @@ var (
 		Long:  `Start a server that communicates via standard input/output streams using JSON-RPC messages.`,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			if err := runStdioServer(); err != nil {
-				logging.Logger.Error("failed to run stdio server", slog.Any("error", err))
 				return err
 			}
 			return nil
@@ -68,7 +66,6 @@ func runStdioServer() error {
 
 	// Start server
 	riskenServer := riskenmcp.NewServer(riskenClient, ServerName, ServerVersion)
-	logging.Logger.Info("Starting RISKEN MCP server...")
 	errC := make(chan error, 1)
 	go func() {
 		errC <- server.ServeStdio(riskenServer)
