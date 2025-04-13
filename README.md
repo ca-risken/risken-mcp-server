@@ -47,11 +47,11 @@ Please add the following MCP server configuration to your [Claude Desktop](https
 
 ### Project
 
-- *get_project* - Get RISKEN project.
+- **get_project** - Get RISKEN project.
 
 ### Finding
 
-- *search_finding* - Search RISKEN findings.
+- **search_finding** - Search RISKEN findings.
   - `finding_id` - Search by finding ID.
   - `alert_id` - Search by alert ID.
   - `data_source` - Search by data source.
@@ -68,13 +68,13 @@ Please add the following MCP server configuration to your [Claude Desktop](https
   - `offset` - Search by offset.
   - `limit` - Search by limit.
 
-- *archive_finding* - Archive RISKEN finding.
+- **archive_finding** - Archive RISKEN finding.
   - `finding_id` - Archive by finding ID.
   - `note` - Note.
 
 ### Alert
 
-- *search_alert* - Search RISKEN alert.
+- **search_alert** - Search RISKEN alert.
   - `status` - Search by status.
     - `1` - Active
     - `2` - Pending
@@ -84,9 +84,9 @@ Please add the following MCP server configuration to your [Claude Desktop](https
 
 ### Finding Contents
 
-- *Get Finding Contents* Retrieves the content of a specific finding.
-  - *Template*: `finding://{project_id}/{finding_id}`
-  - *Parameters*:
+- **Get Finding Contents** Retrieves the content of a specific finding.
+  - **Template**: `finding://{project_id}/{finding_id}`
+  - **Parameters**:
     - `project_id`: The ID of the project.
     - `finding_id`: The ID of the finding.
 
