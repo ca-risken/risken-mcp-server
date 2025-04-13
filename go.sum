@@ -7,6 +7,8 @@ github.com/ca-risken/datasource-api v0.10.0 h1:Nf7S4n640mno2UseZrlgcXtfAqnJfhuJS
 github.com/ca-risken/datasource-api v0.10.0/go.mod h1:ALnhUjHxCmyI6daaJF3Obi6lV5nIZatlISYFuWFybDE=
 github.com/ca-risken/go-risken v0.0.0-20240110062719-4afdbe2ebcba h1:qC4RQ/2u5JW5FXe2ovHkDbl6Rf5tX7XJ8vF6ctgci7k=
 github.com/ca-risken/go-risken v0.0.0-20240110062719-4afdbe2ebcba/go.mod h1:YdNPJor41fwia/ILUXCPVTu2NoL6VQzaFrmTFr3DERg=
+github.com/ca-risken/go-risken v0.0.0-20250413050920-06a180b2c427 h1:aSaJrxQedbXgh5cJ6cG0tMuI4gHhDlBKjcGO+EckjDU=
+github.com/ca-risken/go-risken v0.0.0-20250413050920-06a180b2c427/go.mod h1:YdNPJor41fwia/ILUXCPVTu2NoL6VQzaFrmTFr3DERg=
 github.com/cpuguy83/go-md2man/v2 v2.0.6/go.mod h1:oOW0eioCTA6cOiMLiUPZOpcVxMig6NIQQ7OS05n1F4g=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=

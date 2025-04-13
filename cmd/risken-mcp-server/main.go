@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/ca-risken/go-risken"
+	"github.com/ca-risken/risken-mcp-server/pkg/logging"
 	"github.com/ca-risken/risken-mcp-server/pkg/riskenmcp"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/spf13/cobra"
@@ -22,9 +23,6 @@ const (
 var version = "version"
 var commit = "commit"
 var date = "date"
-var logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-	Level: slog.LevelInfo,
-}))
 
 var (
 	rootCmd = &cobra.Command{
@@ -40,7 +38,7 @@ var (
 		Long:  `Start a server that communicates via standard input/output streams using JSON-RPC messages.`,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			if err := runStdioServer(); err != nil {
-				logger.Error("failed to run stdio server", slog.Any("error", err))
+				logging.Logger.Error("failed to run stdio server", slog.Any("error", err))
 				return err
 			}
 			return nil
@@ -70,7 +68,7 @@ func runStdioServer() error {
 
 	// Start server
 	riskenServer := riskenmcp.NewServer(riskenClient, ServerName, ServerVersion)
-	logger.Info("Starting RISKEN MCP server...")
+	logging.Logger.Info("Starting RISKEN MCP server...")
 	errC := make(chan error, 1)
 	go func() {
 		errC <- server.ServeStdio(riskenServer)
@@ -79,7 +77,7 @@ func runStdioServer() error {
 	// Wait for shutdown signal
 	select {
 	case <-ctx.Done():
-		logger.Info("shutting down server...")
+		logging.Logger.Info("shutting down server...")
 	case err := <-errC:
 		if err != nil {
 			return fmt.Errorf("error running server: %w", err)
