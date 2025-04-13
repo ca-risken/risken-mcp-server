@@ -1,4 +1,4 @@
-# [WIP] RISKEN MCP Server
+# RISKEN MCP Server
 
 The RISKEN MCP Server is a [Model Context Protocol (MCP)](https://modelcontextprotocol.io/introduction) server that provides seamless integration with RISKEN APIs, enabling advanced automation and interaction capabilities for developers and tools.
 
