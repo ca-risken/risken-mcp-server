@@ -16,7 +16,7 @@ The RISKEN MCP Server is a [Model Context Protocol (MCP)](https://modelcontextpr
 
 ## Stdio MCP Server
 
-Please add the following MCP server configuration to your [Claude Desktop](https://claude.ai/download) or [Cursor](https://www.cursor.com/) settings.
+Please add the following MCP server configuration to your MCP Client ([Claude Desktop](https://claude.ai/download) or [Cursor](https://www.cursor.com/)) settings.
 
 ```json
 {
@@ -52,10 +52,10 @@ docker run -it --rm \
   -e RISKEN_ACCESS_TOKEN=xxxxxx \
   -e RISKEN_URL=http://localhost:8000 \
   -p 8080:8080 \
-  ghcr.io/ca-risken/risken-mcp-server http --port 8080
+  ghcr.io/ca-risken/risken-mcp-server http
 ```
 
-2. Add the following MCP server configuration to your [Claude Desktop](https://claude.ai/download) or [Cursor](https://www.cursor.com/) settings.
+2. Add the following MCP server configuration to your MCP Client ([Claude Desktop](https://claude.ai/download) or [Cursor](https://www.cursor.com/)) settings.
 
 ```json
 {
