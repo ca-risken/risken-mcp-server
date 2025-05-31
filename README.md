@@ -51,6 +51,7 @@ Please add the following MCP server configuration to your MCP Client ([Claude De
 docker run -it --rm \
   -e RISKEN_ACCESS_TOKEN=xxxxxx \
   -e RISKEN_URL=http://localhost:8000 \
+  -e MCP_AUTH_TOKEN=xxxxxx \
   -p 8080:8080 \
   ghcr.io/ca-risken/risken-mcp-server http
 ```
@@ -66,10 +67,10 @@ docker run -it --rm \
         "mcp-remote",
         "http://localhost:8080/mcp",
         "--header",
-        "Authorization: Bearer ${AUTH_TOKEN}"
+        "Authorization: Bearer ${MCP_AUTH_TOKEN}"
       ],
       "env": {
-        "AUTH_TOKEN": "xxxxxx"
+        "MCP_AUTH_TOKEN": "xxxxxx"
       }
     }
   }

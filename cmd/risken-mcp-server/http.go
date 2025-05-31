@@ -2,11 +2,15 @@ package main
 
 import (
 	"log/slog"
+	"os"
 
 	"github.com/ca-risken/risken-mcp-server/pkg/logging"
 	"github.com/ca-risken/risken-mcp-server/pkg/riskenmcp"
-	"github.com/mark3labs/mcp-go/server"
 	"github.com/spf13/cobra"
+)
+
+const (
+	httpEndpointPath = "/mcp"
 )
 
 var (
@@ -36,14 +40,25 @@ func runHTTPServer() error {
 	}
 
 	// Create MCP server
+	mcpAuthToken := os.Getenv("MCP_AUTH_TOKEN")
 	mcpserver := riskenmcp.NewServer(riskenClient, ServerName, ServerVersion, httpLogger)
-
-	// Create Streamable HTTP server
-	httpServer := server.NewStreamableHTTPServer(mcpserver.MCPServer)
+	httpServer := riskenmcp.NewAuthStreamableHTTPServer(
+		mcpserver.MCPServer,
+		mcpAuthToken,
+		httpEndpointPath,
+		httpLogger,
+	)
 
 	addr := ":" + httpPort
-	httpLogger.Info("starting RISKEN MCP HTTP server", "address", addr, "endpoint", "/mcp")
+	httpLogger.Info(
+		"Starting RISKEN MCP HTTP server...",
+		slog.String("name", ServerName),
+		slog.String("version", ServerVersion),
+		slog.String("address", addr),
+		slog.Bool("mcp_auth", mcpAuthToken != ""),
+		slog.String("endpoint", httpEndpointPath),
+	)
 
-	// Start server (this handles everything internally including signal handling)
+	// Start server
 	return httpServer.Start(addr)
 }

@@ -35,7 +35,11 @@ func runStdioServer() error {
 
 	// Create and start server
 	mcpserver := riskenmcp.NewServer(riskenClient, ServerName, ServerVersion, stdioLogger)
-	stdioLogger.Info("starting RISKEN MCP server...")
+	stdioLogger.Info(
+		"Starting RISKEN MCP server...",
+		slog.String("name", ServerName),
+		slog.String("version", ServerVersion),
+	)
 
 	// ServeStdio handles signal handling and error management internally
 	return server.ServeStdio(mcpserver.MCPServer)
