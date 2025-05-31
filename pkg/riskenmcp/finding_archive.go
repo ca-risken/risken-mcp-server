@@ -7,13 +7,12 @@ import (
 	"time"
 
 	"github.com/ca-risken/core/proto/finding"
-	"github.com/ca-risken/go-risken"
 	"github.com/ca-risken/risken-mcp-server/pkg/helper"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
 
-func ArchiveFinding(riskenClient *risken.Client) (tool mcp.Tool, handler server.ToolHandlerFunc) {
+func (s *Server) ArchiveFinding() (tool mcp.Tool, handler server.ToolHandlerFunc) {
 	return mcp.NewTool("archive_finding",
 			mcp.WithDescription("Archive RISKEN finding. Use this when a request include \"archive\", \"アーカイブ\", \"ペンディング\"..."),
 			mcp.WithNumber(
@@ -29,13 +28,13 @@ func ArchiveFinding(riskenClient *risken.Client) (tool mcp.Tool, handler server.
 		),
 		func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			// Parse params
-			params, err := ParseArchiveFindingParams(ctx, riskenClient, req)
+			params, err := s.ParseArchiveFindingParams(ctx, req)
 			if err != nil {
 				return mcp.NewToolResultError(fmt.Sprintf("failed to parse params: %s", err)), nil
 			}
 
 			// Call RISKEN API
-			resp, err := riskenClient.PutPendFinding(ctx, params)
+			resp, err := s.riskenClient.PutPendFinding(ctx, params)
 			if err != nil {
 				return mcp.NewToolResultError(fmt.Sprintf("failed to archive finding: %s", err)), nil
 			}
@@ -47,8 +46,8 @@ func ArchiveFinding(riskenClient *risken.Client) (tool mcp.Tool, handler server.
 		}
 }
 
-func ParseArchiveFindingParams(ctx context.Context, riskenClient *risken.Client, req mcp.CallToolRequest) (*finding.PutPendFindingRequest, error) {
-	p, err := GetCurrentProject(ctx, riskenClient)
+func (s *Server) ParseArchiveFindingParams(ctx context.Context, req mcp.CallToolRequest) (*finding.PutPendFindingRequest, error) {
+	p, err := s.GetCurrentProject(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get project: %s", err)
 	}

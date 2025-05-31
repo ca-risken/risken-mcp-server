@@ -6,13 +6,12 @@ import (
 	"fmt"
 
 	"github.com/ca-risken/core/proto/alert"
-	"github.com/ca-risken/go-risken"
 	"github.com/ca-risken/risken-mcp-server/pkg/helper"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
 
-func SearchAlert(riskenClient *risken.Client) (tool mcp.Tool, handler server.ToolHandlerFunc) {
+func (s *Server) SearchAlert() (tool mcp.Tool, handler server.ToolHandlerFunc) {
 	return mcp.NewTool("search_alert",
 			mcp.WithDescription("Search RISKEN alert. Use this when a request include \"alert\", \"アラート\" ..."),
 			mcp.WithNumber(
@@ -24,13 +23,13 @@ func SearchAlert(riskenClient *risken.Client) (tool mcp.Tool, handler server.Too
 		),
 		func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			// Parse params
-			params, err := ParseSearchAlertParams(ctx, riskenClient, req)
+			params, err := s.ParseSearchAlertParams(ctx, req)
 			if err != nil {
 				return mcp.NewToolResultError(fmt.Sprintf("failed to parse params: %s", err)), nil
 			}
 
 			// Call RISKEN API
-			resp, err := riskenClient.ListAlert(ctx, params)
+			resp, err := s.riskenClient.ListAlert(ctx, params)
 			if err != nil {
 				return mcp.NewToolResultError(fmt.Sprintf("failed to search alert: %s", err)), nil
 			}
@@ -42,8 +41,8 @@ func SearchAlert(riskenClient *risken.Client) (tool mcp.Tool, handler server.Too
 		}
 }
 
-func ParseSearchAlertParams(ctx context.Context, riskenClient *risken.Client, req mcp.CallToolRequest) (*alert.ListAlertRequest, error) {
-	p, err := GetCurrentProject(ctx, riskenClient)
+func (s *Server) ParseSearchAlertParams(ctx context.Context, req mcp.CallToolRequest) (*alert.ListAlertRequest, error) {
+	p, err := s.GetCurrentProject(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get project: %s", err)
 	}
