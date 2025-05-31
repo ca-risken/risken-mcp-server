@@ -13,3 +13,12 @@ func NewStdioLogger(level slog.Level) *slog.Logger {
 		},
 	))
 }
+
+func NewHTTPLogger(level slog.Level) *slog.Logger {
+	return slog.New(slog.NewJSONHandler(
+		os.Stdout,
+		&slog.HandlerOptions{
+			Level: level,
+		},
+	))
+}

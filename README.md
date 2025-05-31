@@ -14,7 +14,7 @@ The RISKEN MCP Server is a [Model Context Protocol (MCP)](https://modelcontextpr
 2. Once Docker is installed, you will also need to ensure Docker is running.
 3. You will also need to have a [RISKEN Access Token](https://docs.security-hub.jp/en/risken/access_token/).
 
-## Installation
+## Stdio MCP Server
 
 Please add the following MCP server configuration to your [Claude Desktop](https://claude.ai/download) or [Cursor](https://www.cursor.com/) settings.
 
@@ -37,6 +37,39 @@ Please add the following MCP server configuration to your [Claude Desktop](https
       "env": {
         "RISKEN_ACCESS_TOKEN": "your_access_token",
         "RISKEN_URL": "http://localhost:8000"
+      }
+    }
+  }
+}
+```
+
+## Streamable HTTP MCP Server
+
+1. Run the server.
+
+```bash
+docker run -it --rm \
+  -e RISKEN_ACCESS_TOKEN=xxxxxx \
+  -e RISKEN_URL=http://localhost:8000 \
+  -p 8080:8080 \
+  ghcr.io/ca-risken/risken-mcp-server http --port 8080
+```
+
+2. Add the following MCP server configuration to your [Claude Desktop](https://claude.ai/download) or [Cursor](https://www.cursor.com/) settings.
+
+```json
+{
+  "mcpServers": {
+    "risken": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "http://localhost:8080/mcp",
+        "--header",
+        "Authorization: Bearer ${AUTH_TOKEN}"
+      ],
+      "env": {
+        "AUTH_TOKEN": "xxxxxx"
       }
     }
   }
