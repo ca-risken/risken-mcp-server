@@ -52,7 +52,7 @@ func ParseSearchAlertParams(ctx context.Context, riskenClient *risken.Client, re
 		Status:    []alert.Status{alert.Status_ACTIVE},
 	}
 
-	status, err := helper.ParseMCPArgs[float64]("status", req.Params.Arguments)
+	status, err := helper.ParseMCPArgs[float64]("status", req.GetArguments())
 	if err != nil {
 		return nil, fmt.Errorf("status error: %s", err)
 	}

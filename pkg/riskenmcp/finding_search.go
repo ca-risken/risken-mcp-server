@@ -121,7 +121,7 @@ func ParseSearchFindingParams(ctx context.Context, riskenClient *risken.Client, 
 	// 	logging.Logger.Info("SearchFinding args", slog.String("key", k), slog.Any("value", v), slog.String("type", fmt.Sprintf("%T", v)))
 	// }
 
-	findingID, err := helper.ParseMCPArgs[float64]("finding_id", req.Params.Arguments)
+	findingID, err := helper.ParseMCPArgs[float64]("finding_id", req.GetArguments())
 	if err != nil {
 		return nil, fmt.Errorf("finding_id error: %s", err)
 	}
@@ -132,7 +132,7 @@ func ParseSearchFindingParams(ctx context.Context, riskenClient *risken.Client, 
 		return param, nil // finding_id is specified, so return immediately
 	}
 
-	alertID, err := helper.ParseMCPArgs[float64]("alert_id", req.Params.Arguments)
+	alertID, err := helper.ParseMCPArgs[float64]("alert_id", req.GetArguments())
 	if err != nil {
 		return nil, fmt.Errorf("alert_id error: %s", err)
 	}
@@ -142,7 +142,7 @@ func ParseSearchFindingParams(ctx context.Context, riskenClient *risken.Client, 
 		return param, nil // alert_id is specified, so return immediately
 	}
 
-	dataSource, err := helper.ParseMCPArgs[[]any]("data_source", req.Params.Arguments)
+	dataSource, err := helper.ParseMCPArgs[[]any]("data_source", req.GetArguments())
 	if err != nil {
 		return nil, fmt.Errorf("data_source error: %s", err)
 	}
@@ -151,7 +151,7 @@ func ParseSearchFindingParams(ctx context.Context, riskenClient *risken.Client, 
 			param.DataSource = append(param.DataSource, fmt.Sprintf("%v", v))
 		}
 	}
-	resourceName, err := helper.ParseMCPArgs[[]any]("resource_name", req.Params.Arguments)
+	resourceName, err := helper.ParseMCPArgs[[]any]("resource_name", req.GetArguments())
 	if err != nil {
 		return nil, fmt.Errorf("resource_name error: %s", err)
 	}
@@ -160,28 +160,28 @@ func ParseSearchFindingParams(ctx context.Context, riskenClient *risken.Client, 
 			param.ResourceName = append(param.ResourceName, fmt.Sprintf("%v", v))
 		}
 	}
-	fromScore, err := helper.ParseMCPArgs[float64]("from_score", req.Params.Arguments)
+	fromScore, err := helper.ParseMCPArgs[float64]("from_score", req.GetArguments())
 	if err != nil {
 		return nil, fmt.Errorf("from_score error: %s", err)
 	}
 	if fromScore != nil {
 		param.FromScore = float32(*fromScore)
 	}
-	status, err := helper.ParseMCPArgs[float64]("status", req.Params.Arguments)
+	status, err := helper.ParseMCPArgs[float64]("status", req.GetArguments())
 	if err != nil {
 		return nil, fmt.Errorf("status error: %s", err)
 	}
 	if status != nil {
 		param.Status = finding.FindingStatus(int32(*status))
 	}
-	offset, err := helper.ParseMCPArgs[float64]("offset", req.Params.Arguments)
+	offset, err := helper.ParseMCPArgs[float64]("offset", req.GetArguments())
 	if err != nil {
 		return nil, fmt.Errorf("offset error: %s", err)
 	}
 	if offset != nil {
 		param.Offset = int32(*offset)
 	}
-	limit, err := helper.ParseMCPArgs[float64]("limit", req.Params.Arguments)
+	limit, err := helper.ParseMCPArgs[float64]("limit", req.GetArguments())
 	if err != nil {
 		return nil, fmt.Errorf("limit error: %s", err)
 	}

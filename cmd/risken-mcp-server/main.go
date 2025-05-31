@@ -19,11 +19,11 @@ const (
 	ServerVersion = "0.0.1"
 )
 
-var version = "version"
-var commit = "commit"
-var date = "date"
-
 var (
+	version = "version"
+	commit  = "commit"
+	date    = "date"
+
 	rootCmd = &cobra.Command{
 		Use:     "risken-mcp-server",
 		Short:   "RISKEN MCP Server",

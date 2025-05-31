@@ -60,14 +60,14 @@ func ParseArchiveFindingParams(ctx context.Context, riskenClient *risken.Client,
 		},
 	}
 
-	findingID, err := helper.ParseMCPArgs[float64]("finding_id", req.Params.Arguments)
+	findingID, err := helper.ParseMCPArgs[float64]("finding_id", req.GetArguments())
 	if err != nil {
 		return nil, fmt.Errorf("finding_id error: %s", err)
 	}
 	if findingID != nil {
 		param.PendFinding.FindingId = uint64(*findingID)
 	}
-	note, err := helper.ParseMCPArgs[string]("note", req.Params.Arguments)
+	note, err := helper.ParseMCPArgs[string]("note", req.GetArguments())
 	if err != nil {
 		return nil, fmt.Errorf("note error: %s", err)
 	}
