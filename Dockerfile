@@ -5,7 +5,7 @@ COPY go.sum .
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -v -o main cmd/risken-mcp-server/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -v -o main cmd/risken-mcp-server/*.go
 
 FROM alpine:3.20
 COPY --from=builder /app/main /usr/local/bin/

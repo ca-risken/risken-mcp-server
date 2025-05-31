@@ -11,6 +11,10 @@ run:
 		-e RISKEN_URL=${RISKEN_URL} \
 		risken-mcp-server stdio
 
+.PHONY: logs
+logs:
+	@docker logs -f $$(docker ps -q --filter "ancestor=risken-mcp-server" | head -1)
+
 .PHONY: help
 help:
 	docker run -it --rm risken-mcp-server help

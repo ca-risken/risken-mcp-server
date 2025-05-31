@@ -6,23 +6,22 @@ import (
 	"errors"
 
 	"github.com/ca-risken/core/proto/finding"
-	"github.com/ca-risken/go-risken"
 	"github.com/ca-risken/risken-mcp-server/pkg/helper"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
 
-func GetFindingResource(riskenClient *risken.Client) (mcp.ResourceTemplate, server.ResourceTemplateHandlerFunc) {
+func (s *Server) GetFindingResource() (mcp.ResourceTemplate, server.ResourceTemplateHandlerFunc) {
 	return mcp.NewResourceTemplate(
 			"finding://{project_id}/{finding_id}",
 			"RISKEN Finding",
 		),
-		FindingResourceContentsHandler(riskenClient)
+		s.FindingResourceContentsHandler()
 }
 
-func FindingResourceContentsHandler(riskenClient *risken.Client) func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+func (s *Server) FindingResourceContentsHandler() func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
 	return func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
-		p, err := GetCurrentProject(ctx, riskenClient)
+		p, err := s.GetCurrentProject(ctx)
 		if err != nil {
 			return nil, errors.New("failed to get project")
 		}
@@ -35,7 +34,7 @@ func FindingResourceContentsHandler(riskenClient *risken.Client) func(ctx contex
 		}
 
 		// Call RISKEN API
-		finding, err := riskenClient.GetFinding(ctx, &finding.GetFindingRequest{
+		finding, err := s.riskenClient.GetFinding(ctx, &finding.GetFindingRequest{
 			ProjectId: p.ProjectId,
 			FindingId: *findingID,
 		})

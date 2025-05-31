@@ -1,11 +1,19 @@
 package riskenmcp
 
 import (
+	"log/slog"
+
 	"github.com/ca-risken/go-risken"
 	"github.com/mark3labs/mcp-go/server"
 )
 
-func NewServer(riskenClient *risken.Client, name, version string, opts ...server.ServerOption) *server.MCPServer {
+type Server struct {
+	MCPServer    *server.MCPServer
+	riskenClient *risken.Client
+	logger       *slog.Logger
+}
+
+func NewServer(riskenClient *risken.Client, name, version string, logger *slog.Logger, opts ...server.ServerOption) *Server {
 	// Add default options
 	defaultOpts := []server.ServerOption{
 		server.WithResourceCapabilities(true, true),
@@ -19,15 +27,20 @@ func NewServer(riskenClient *risken.Client, name, version string, opts ...server
 		version,
 		opts...,
 	)
+	mcpserver := &Server{
+		MCPServer:    s,
+		riskenClient: riskenClient,
+		logger:       logger,
+	}
 
 	// Add resources
-	s.AddResourceTemplate(GetFindingResource(riskenClient))
+	s.AddResourceTemplate(mcpserver.GetFindingResource())
 
 	// Add tools
-	s.AddTool(GetProject(riskenClient))
-	s.AddTool(SearchFinding(riskenClient))
-	s.AddTool(ArchiveFinding(riskenClient))
-	s.AddTool(SearchAlert(riskenClient))
+	s.AddTool(mcpserver.GetProject())
+	s.AddTool(mcpserver.SearchFinding())
+	s.AddTool(mcpserver.ArchiveFinding())
+	s.AddTool(mcpserver.SearchAlert())
 
-	return s
+	return mcpserver
 }
