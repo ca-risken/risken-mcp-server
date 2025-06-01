@@ -41,7 +41,7 @@ func (a *AuthStreamableHTTPServer) Start(addr string) error {
 	a.httpServer = &http.Server{
 		Addr:        addr,
 		Handler:     mux,
-		ReadTimeout: 30 * time.Second,
+		ReadTimeout: 300 * time.Second,
 	}
 	a.mu.Unlock()
 	return a.httpServer.ListenAndServe()
