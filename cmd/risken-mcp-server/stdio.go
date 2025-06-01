@@ -2,6 +2,7 @@ package main
 
 import (
 	"log/slog"
+	"os"
 
 	"github.com/ca-risken/risken-mcp-server/pkg/logging"
 	"github.com/ca-risken/risken-mcp-server/pkg/riskenmcp"
@@ -28,7 +29,9 @@ func init() {
 
 func runStdioServer() error {
 	// Create RISKEN client
-	riskenClient, err := newRISKENClient()
+	url := os.Getenv("RISKEN_URL")
+	token := os.Getenv("RISKEN_ACCESS_TOKEN")
+	riskenClient, err := newRISKENClient(url, token)
 	if err != nil {
 		return err
 	}
