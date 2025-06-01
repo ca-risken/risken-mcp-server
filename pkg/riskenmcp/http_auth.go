@@ -1,7 +1,9 @@
 package riskenmcp
 
 import (
+	"bytes"
 	"context"
+	"io"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -60,6 +62,7 @@ func (a *AuthStreamableHTTPServer) Shutdown(ctx context.Context) error {
 
 // ServeHTTP implements the http.Handler interface with authentication
 func (a *AuthStreamableHTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	a.accessLogging(r)
 	if a.mcpAuthToken != "" {
 		// Check Authorization header
 		authHeader := r.Header.Get("Authorization")
@@ -110,4 +113,23 @@ func (a *AuthStreamableHTTPServer) healthzHandler(w http.ResponseWriter, _ *http
 	if _, err := w.Write([]byte("OK")); err != nil {
 		a.logger.Error("Failed to write healthz response", slog.String("error", err.Error()))
 	}
+}
+
+func (a *AuthStreamableHTTPServer) accessLogging(r *http.Request) {
+	jsonRPC := ""
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err == nil {
+		r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+		jsonRPC = string(bodyBytes)
+	}
+
+	a.logger.Debug("Received request",
+		slog.String("method", r.Method),
+		slog.String("path", r.URL.Path),
+		slog.String("content_type", r.Header.Get("Content-Type")),
+		slog.String("mcp_session_id", r.Header.Get("Mcp-Session-Id")),
+		slog.String("json_rpc", jsonRPC),
+		slog.String("remote_addr", r.RemoteAddr),
+		slog.String("user_agent", r.UserAgent()),
+	)
 }
