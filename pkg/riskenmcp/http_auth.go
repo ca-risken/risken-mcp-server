@@ -36,6 +36,7 @@ func (a *AuthStreamableHTTPServer) Start(addr string) error {
 	a.mu.Lock()
 	mux := http.NewServeMux()
 	mux.Handle(a.endpointPath, a)
+	mux.HandleFunc("/healthz", a.healthzHandler)
 
 	a.httpServer = &http.Server{
 		Addr:        addr,
@@ -102,4 +103,11 @@ func (a *AuthStreamableHTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Requ
 
 	// Delegate to the original handler
 	a.StreamableHTTPServer.ServeHTTP(w, r)
+}
+
+func (a *AuthStreamableHTTPServer) healthzHandler(w http.ResponseWriter, _ *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	if _, err := w.Write([]byte("OK")); err != nil {
+		a.logger.Error("Failed to write healthz response", slog.String("error", err.Error()))
+	}
 }
