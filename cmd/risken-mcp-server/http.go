@@ -34,17 +34,18 @@ func init() {
 
 func runHTTPServer() error {
 	// Create RISKEN client
-	riskenClient, err := newRISKENClient()
+	url := os.Getenv("RISKEN_URL")
+	token := os.Getenv("RISKEN_ACCESS_TOKEN")
+	riskenClient, err := newRISKENClient(url, token)
 	if err != nil {
 		return err
 	}
 
 	// Create MCP server
-	mcpAuthToken := os.Getenv("MCP_AUTH_TOKEN")
 	mcpserver := riskenmcp.NewServer(riskenClient, ServerName, ServerVersion, httpLogger)
 	httpServer := riskenmcp.NewAuthStreamableHTTPServer(
 		mcpserver.MCPServer,
-		mcpAuthToken,
+		token,
 		httpEndpointPath,
 		httpLogger,
 	)
@@ -55,7 +56,7 @@ func runHTTPServer() error {
 		slog.String("name", ServerName),
 		slog.String("version", ServerVersion),
 		slog.String("address", addr),
-		slog.Bool("mcp_auth", mcpAuthToken != ""),
+		slog.Bool("mcp_auth", token != ""),
 		slog.String("endpoint", httpEndpointPath),
 	)
 
