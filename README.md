@@ -14,7 +14,7 @@ The RISKEN MCP Server is a [Model Context Protocol (MCP)](https://modelcontextpr
 2. Once Docker is installed, you will also need to ensure Docker is running.
 3. You will also need to have a [RISKEN Access Token](https://docs.security-hub.jp/en/risken/access_token/).
 
-## Stdio MCP Server
+## Local MCP Server
 
 Please add the following MCP server configuration to your MCP Client ([Claude Desktop](https://claude.ai/download) or [Cursor](https://www.cursor.com/)) settings.
 
@@ -35,26 +35,35 @@ Please add the following MCP server configuration to your MCP Client ([Claude De
         "stdio"
       ],
       "env": {
-        "RISKEN_ACCESS_TOKEN": "your_access_token",
-        "RISKEN_URL": "http://localhost:8000"
+        "RISKEN_URL": "http://localhost:8000",
+        "RISKEN_ACCESS_TOKEN": "your_access_token"
       }
     }
   }
 }
 ```
 
-## Streamable HTTP MCP Server
+## Remote MCP Server
 
-1. Run the server.
+RISKEN MCP Server supports Streamable HTTP.
+For example, you can deploy the server on Google Cloud Run with Terraform.
+See [terraform/modules/cloudrun](terraform/modules/cloudrun) for more details.
+
+### Local HTTP Server
 
 ```bash
 docker run -it --rm \
-  -e RISKEN_ACCESS_TOKEN=xxxxxx \
   -e RISKEN_URL=http://localhost:8000 \
-  -e MCP_AUTH_TOKEN=xxxxxx \
+  -e RISKEN_ACCESS_TOKEN=xxxxxx \
   -p 8080:8080 \
   ghcr.io/ca-risken/risken-mcp-server http
 ```
+
+### Cloud Run
+
+gcloud auth application-default login
+gcloud config set project your-project-id
+
 
 2. Add the following MCP server configuration to your MCP Client ([Claude Desktop](https://claude.ai/download) or [Cursor](https://www.cursor.com/)) settings.
 
@@ -67,10 +76,10 @@ docker run -it --rm \
         "mcp-remote",
         "http://localhost:8080/mcp",
         "--header",
-        "Authorization: Bearer ${MCP_AUTH_TOKEN}"
+        "Authorization: Bearer ${RISKEN_ACCESS_TOKEN}"
       ],
       "env": {
-        "MCP_AUTH_TOKEN": "xxxxxx"
+        "RISKEN_ACCESS_TOKEN": "xxxxxx"
       }
     }
   }
