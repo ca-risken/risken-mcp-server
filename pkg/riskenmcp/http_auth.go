@@ -36,7 +36,7 @@ func (a *AuthStreamableHTTPServer) Start(addr string) error {
 	a.mu.Lock()
 	mux := http.NewServeMux()
 	mux.Handle(a.endpointPath, a)
-	mux.HandleFunc("/healthz", a.healthzHandler)
+	mux.HandleFunc("/health", a.healthzHandler)
 
 	a.httpServer = &http.Server{
 		Addr:        addr,
