@@ -2,12 +2,14 @@ package riskenmcp
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/ca-risken/go-risken"
 	"github.com/ca-risken/risken-mcp-server/pkg/helper"
 	"github.com/mark3labs/mcp-go/server"
 )
@@ -15,7 +17,7 @@ import (
 // AuthStreamableHTTPServer is a wrapper for StreamableHTTPServer with authentication
 type AuthStreamableHTTPServer struct {
 	*server.StreamableHTTPServer
-	mcpAuthToken string
+	riskenURL    string
 	endpointPath string
 	logger       *slog.Logger
 	httpServer   *http.Server
@@ -23,11 +25,11 @@ type AuthStreamableHTTPServer struct {
 }
 
 // NewAutStreamableHTTPServer creates a new authenticated server instance
-func NewAuthStreamableHTTPServer(mcpServer *server.MCPServer, mcpAuthToken, endpointPath string, logger *slog.Logger) *AuthStreamableHTTPServer {
+func NewAuthStreamableHTTPServer(mcpServer *server.MCPServer, riskenURL, endpointPath string, logger *slog.Logger) *AuthStreamableHTTPServer {
 	return &AuthStreamableHTTPServer{
 		StreamableHTTPServer: server.NewStreamableHTTPServer(mcpServer, server.WithEndpointPath(endpointPath)),
-		mcpAuthToken:         mcpAuthToken,
 		endpointPath:         endpointPath,
+		riskenURL:            riskenURL,
 		logger:               logger,
 	}
 }
@@ -62,7 +64,13 @@ func (a *AuthStreamableHTTPServer) Shutdown(ctx context.Context) error {
 // ServeHTTP implements the http.Handler interface with authentication
 func (a *AuthStreamableHTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	a.accessLogging(r)
-	if a.mcpAuthToken != "" {
+	token := ""
+	authHeader := r.Header.Get("Authorization")
+	if authHeader != "" {
+		token = strings.TrimPrefix(authHeader, "Bearer ")
+	}
+
+	if token != "" {
 		requestID, err := ParseJSONRPCRequestID(r)
 		if err != nil {
 			jsonRPCError := NewJSONRPCError(nil, JSONRPCErrorParseError, "Parse error(requestID)")
@@ -70,28 +78,18 @@ func (a *AuthStreamableHTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Requ
 			return
 		}
 
-		// Check Authorization header
-		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" {
-			jsonRPCError := NewJSONRPCError(requestID, JSONRPCErrorUnauthorized, "Unauthorized(missing authorization header)")
-			http.Error(w, jsonRPCError.String(), http.StatusUnauthorized)
-			return
-		}
-
-		// Check Bearer token format
-		if !strings.HasPrefix(authHeader, "Bearer ") {
-			jsonRPCError := NewJSONRPCError(requestID, JSONRPCErrorUnauthorized, "Unauthorized(invalid authorization format)")
-			http.Error(w, jsonRPCError.String(), http.StatusUnauthorized)
-			return
-		}
-
 		// Verify token
-		token := strings.TrimPrefix(authHeader, "Bearer ")
-		if token != a.mcpAuthToken {
-			jsonRPCError := NewJSONRPCError(requestID, JSONRPCErrorUnauthorized, "Unauthorized(invalid MCP auth token)")
+		riskenClient, err := a.createAndValidateRISKENClient(r.Context(), token)
+		if err != nil {
+			a.logger.Error("Failed to validate RISKEN client", slog.String("error", err.Error()))
+			jsonRPCError := NewJSONRPCError(requestID, JSONRPCErrorUnauthorized, fmt.Sprintf("Invalid RISKEN token: %s", err))
 			http.Error(w, jsonRPCError.String(), http.StatusUnauthorized)
 			return
 		}
+
+		// Add RISKEN Client to the request context
+		ctx := WithRISKENClient(r.Context(), riskenClient)
+		r = r.WithContext(ctx)
 
 		// Log authenticated request
 		a.logger.Debug("Authenticated request",
@@ -103,6 +101,20 @@ func (a *AuthStreamableHTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Requ
 
 	// Delegate to the original handler
 	a.StreamableHTTPServer.ServeHTTP(w, r)
+}
+
+// createAndValidateRISKENClient creates a new RISKEN client and validates the token.
+func (a *AuthStreamableHTTPServer) createAndValidateRISKENClient(ctx context.Context, token string) (*risken.Client, error) {
+	client := risken.NewClient(token, risken.WithAPIEndpoint(a.riskenURL))
+
+	resp, err := client.Signin(ctx) // Signin to validate the token
+	if err != nil {
+		return nil, fmt.Errorf("failed to signin: %w", err)
+	}
+	if resp == nil || resp.ProjectID == 0 {
+		return nil, fmt.Errorf("invalid project: %+v", resp)
+	}
+	return client, nil
 }
 
 func (a *AuthStreamableHTTPServer) healthzHandler(w http.ResponseWriter, _ *http.Request) {

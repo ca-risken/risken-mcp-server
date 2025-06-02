@@ -7,6 +7,7 @@ import (
 	"log/slog"
 
 	"github.com/ca-risken/core/proto/finding"
+	"github.com/ca-risken/go-risken"
 	"github.com/ca-risken/risken-mcp-server/pkg/helper"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -66,14 +67,19 @@ func (s *Server) SearchFinding() (tool mcp.Tool, handler server.ToolHandlerFunc)
 			),
 		),
 		func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			riskenClient, err := s.GetRISKENClient(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get RISKEN client: %w", err)
+			}
+
 			// Parse params
-			params, err := s.ParseSearchFindingParams(ctx, req)
+			params, err := s.ParseSearchFindingParams(ctx, req, riskenClient)
 			if err != nil {
 				return mcp.NewToolResultError(fmt.Sprintf("failed to parse params: %s", err)), nil
 			}
 
 			// Call RISKEN API
-			findings, err := s.riskenClient.ListFinding(ctx, params)
+			findings, err := riskenClient.ListFinding(ctx, params)
 			if err != nil {
 				return mcp.NewToolResultError(fmt.Sprintf("failed to get findings: %s", err)), nil
 			}
@@ -85,7 +91,7 @@ func (s *Server) SearchFinding() (tool mcp.Tool, handler server.ToolHandlerFunc)
 				Limit:    int32(params.Limit),
 			}
 			for _, fid := range findings.FindingId {
-				finding, err := s.riskenClient.GetFinding(ctx, &finding.GetFindingRequest{
+				finding, err := riskenClient.GetFinding(ctx, &finding.GetFindingRequest{
 					ProjectId: params.ProjectId,
 					FindingId: fid,
 				})
@@ -102,8 +108,8 @@ func (s *Server) SearchFinding() (tool mcp.Tool, handler server.ToolHandlerFunc)
 		}
 }
 
-func (s *Server) ParseSearchFindingParams(ctx context.Context, req mcp.CallToolRequest) (*finding.ListFindingRequest, error) {
-	p, err := s.GetCurrentProject(ctx)
+func (s *Server) ParseSearchFindingParams(ctx context.Context, req mcp.CallToolRequest, riskenClient *risken.Client) (*finding.ListFindingRequest, error) {
+	p, err := s.GetCurrentProject(ctx, riskenClient)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get project: %s", err)
 	}
@@ -112,7 +118,7 @@ func (s *Server) ParseSearchFindingParams(ctx context.Context, req mcp.CallToolR
 		// Default params
 		Offset:    0,
 		Limit:     10,
-		FromScore: 0.5,
+		FromScore: 0.1,
 		Status:    finding.FindingStatus_FINDING_ACTIVE,
 	}
 

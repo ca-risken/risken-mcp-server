@@ -20,7 +20,6 @@ stdio: build
 http: build
 	@docker run -it --rm \
 		-e RISKEN_URL=${RISKEN_URL} \
-		-e RISKEN_ACCESS_TOKEN=${RISKEN_ACCESS_TOKEN} \
 		-p ${HTTP_PORT}:8080 \
 		risken-mcp-server http
 
@@ -74,6 +73,7 @@ http-tools-list: http-get-session
 	@curl -s -X POST http://127.0.0.1:${HTTP_PORT}/mcp \
 		-H "Content-Type: application/json" \
 		-H "Authorization: Bearer ${RISKEN_ACCESS_TOKEN}" \
+		-H "$$(cat $(MCP_SESSION_FILE))" \
 		-d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 
 .PHONY: http-get-project
@@ -81,6 +81,15 @@ http-get-project: http-get-session
 	@curl -s -X POST http://127.0.0.1:${HTTP_PORT}/mcp \
 		-H "Content-Type: application/json" \
 		-H "Authorization: Bearer ${RISKEN_ACCESS_TOKEN}" \
+		-H "$$(cat $(MCP_SESSION_FILE))" \
+		-d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"get_project"}}' \
+		| jq .
+
+.PHONY: http-get-project2
+http-get-project2: http-get-session
+	@curl -s -X POST http://127.0.0.1:${HTTP_PORT}/mcp \
+		-H "Content-Type: application/json" \
+		-H "Authorization: Bearer ${RISKEN_ACCESS_TOKEN2}" \
 		-H "$$(cat $(MCP_SESSION_FILE))" \
 		-d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"get_project"}}' \
 		| jq .
@@ -99,5 +108,5 @@ http-auth-error:
 	@curl -s -X POST http://127.0.0.1:${HTTP_PORT}/mcp \
 		-H "Content-Type: application/json" \
 		-H "Authorization: Bearer INVALID_TOKEN" \
-		-d '{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"protocolVersion":"2024-11-05","clientInfo":{"name":"curl-client"}}}' \
+		-d '{"jsonrpc":"2.0","id":999,"method":"initialize","params":{"protocolVersion":"2024-11-05","clientInfo":{"name":"curl-client"}}}' \
 		| jq .
