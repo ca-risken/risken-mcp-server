@@ -15,7 +15,7 @@ provider "google" {
 }
 
 module "risken_mcp_server" {
-  source = "../../modules/cloudrun"
+  source = "github.com/ca-risken/risken-mcp-server//terraform/modules/cloudrun?ref=main"
 
   project_id          = "your-project-id"
   region              = "your-region"
