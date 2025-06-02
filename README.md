@@ -46,10 +46,8 @@ Please add the following MCP server configuration to your MCP Client ([Claude De
 ## Remote MCP Server
 
 RISKEN MCP Server supports Streamable HTTP.
-For example, you can deploy the server on Google Cloud Run with Terraform.
-See [terraform/modules/cloudrun](terraform/modules/cloudrun) for more details.
 
-### Local HTTP Server
+### on Local
 
 ```bash
 docker run -it --rm \
@@ -59,13 +57,17 @@ docker run -it --rm \
   ghcr.io/ca-risken/risken-mcp-server http
 ```
 
-### Cloud Run
+### on Cloud Run
 
-gcloud auth application-default login
-gcloud config set project your-project-id
+You can deploy the server on Google Cloud Run with Terraform.
 
+1. Visit [terraform/examples/googlecloud](terraform/examples/googlecloud) and deploy the server on Google Cloud Run with Terraform.
 
 2. Add the following MCP server configuration to your MCP Client ([Claude Desktop](https://claude.ai/download) or [Cursor](https://www.cursor.com/)) settings.
+
+**Note:** Since most MCP clients only allow stdio connections, it is currently necessary to use [mcp-remote](https://github.com/geelen/mcp-remote) as a proxy to connect to remote MCP servers.
+
+#### Claude Desktop(mac)
 
 ```json
 {
@@ -80,6 +82,29 @@ gcloud config set project your-project-id
       ],
       "env": {
         "RISKEN_ACCESS_TOKEN": "xxxxxx"
+      }
+    }
+  }
+}
+```
+
+#### Cursor (and claude desktop for windows)
+
+**Note:** Cursor and Claude Desktop (Windows) have a bug where spaces inside args aren't escaped when it invokes npx, which ends up mangling these values. You can work around it using:
+
+```json
+{
+  "mcpServers": {
+    "risken": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "http://localhost:8080/mcp",
+        "--header",
+        "Authorization:${AUTH_HEADER}" // note no spaces around ':'
+      ],
+      "env": {
+        "AUTH_HEADER": "Bearer xxxxxx" // space OK in env
       }
     }
   }
