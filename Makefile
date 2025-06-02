@@ -96,7 +96,8 @@ http-search-finding: http-get-session
 
 .PHONY: http-auth-error
 http-auth-error:
-	@curl -i -X POST http://127.0.0.1:${HTTP_PORT}/mcp \
+	@curl -s -X POST http://127.0.0.1:${HTTP_PORT}/mcp \
 		-H "Content-Type: application/json" \
 		-H "Authorization: Bearer INVALID_TOKEN" \
-		-d '{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"protocolVersion":"2024-11-05","clientInfo":{"name":"curl-client"}}}'
+		-d '{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"protocolVersion":"2024-11-05","clientInfo":{"name":"curl-client"}}}' \
+		| jq .

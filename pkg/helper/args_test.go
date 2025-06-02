@@ -72,15 +72,15 @@ func TestParseMCPArgs(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			switch tc.expected.(type) {
+			switch expected := tc.expected.(type) {
 			case *string:
 				got, err := ParseMCPArgs[string](tc.key, tc.mcpArgs)
 				if (err != nil) != tc.wantErr {
 					t.Errorf("ParseMCPArgs() error = %v, wantErr %v", err, tc.wantErr)
 					return
 				}
-				if tc.expected != nil && (got == nil || *got != *tc.expected.(*string)) {
-					t.Errorf("ParseMCPArgs() = %v, want %v", got, tc.expected)
+				if expected != nil && (got == nil || *got != *expected) {
+					t.Errorf("ParseMCPArgs() = %v, want %v", got, expected)
 				}
 			case *int:
 				got, err := ParseMCPArgs[int](tc.key, tc.mcpArgs)
@@ -88,8 +88,8 @@ func TestParseMCPArgs(t *testing.T) {
 					t.Errorf("ParseMCPArgs() error = %v, wantErr %v", err, tc.wantErr)
 					return
 				}
-				if tc.expected != nil && (got == nil || *got != *tc.expected.(*int)) {
-					t.Errorf("ParseMCPArgs() = %v, want %v", got, tc.expected)
+				if expected != nil && (got == nil || *got != *expected) {
+					t.Errorf("ParseMCPArgs() = %v, want %v", got, expected)
 				}
 			case *float64:
 				got, err := ParseMCPArgs[float64](tc.key, tc.mcpArgs)
@@ -97,8 +97,8 @@ func TestParseMCPArgs(t *testing.T) {
 					t.Errorf("ParseMCPArgs() error = %v, wantErr %v", err, tc.wantErr)
 					return
 				}
-				if tc.expected != nil && (got == nil || *got != *tc.expected.(*float64)) {
-					t.Errorf("ParseMCPArgs() = %v, want %v", got, tc.expected)
+				if expected != nil && (got == nil || *got != *expected) {
+					t.Errorf("ParseMCPArgs() = %v, want %v", got, expected)
 				}
 			case *bool:
 				got, err := ParseMCPArgs[bool](tc.key, tc.mcpArgs)
@@ -106,8 +106,8 @@ func TestParseMCPArgs(t *testing.T) {
 					t.Errorf("ParseMCPArgs() error = %v, wantErr %v", err, tc.wantErr)
 					return
 				}
-				if tc.expected != nil && (got == nil || *got != *tc.expected.(*bool)) {
-					t.Errorf("ParseMCPArgs() = %v, want %v", got, tc.expected)
+				if expected != nil && (got == nil || *got != *expected) {
+					t.Errorf("ParseMCPArgs() = %v, want %v", got, expected)
 				}
 			case *[]string:
 				got, err := ParseMCPArgs[[]string](tc.key, tc.mcpArgs)
@@ -115,14 +115,13 @@ func TestParseMCPArgs(t *testing.T) {
 					t.Errorf("ParseMCPArgs() error = %v, wantErr %v", err, tc.wantErr)
 					return
 				}
-				if tc.expected != nil && got != nil {
-					expected := tc.expected.(*[]string)
+				if expected != nil && got != nil {
 					if len(*got) != len(*expected) {
-						t.Errorf("ParseMCPArgs() = %v, want %v", got, tc.expected)
+						t.Errorf("ParseMCPArgs() = %v, want %v", got, expected)
 					}
 					for i := range *got {
 						if (*got)[i] != (*expected)[i] {
-							t.Errorf("ParseMCPArgs() = %v, want %v", got, tc.expected)
+							t.Errorf("ParseMCPArgs() = %v, want %v", got, expected)
 						}
 					}
 				}
