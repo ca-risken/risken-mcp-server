@@ -1,15 +1,14 @@
 package riskenmcp
 
 import (
-	"bytes"
 	"context"
-	"io"
 	"log/slog"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/ca-risken/risken-mcp-server/pkg/helper"
 	"github.com/mark3labs/mcp-go/server"
 )
 
@@ -64,35 +63,33 @@ func (a *AuthStreamableHTTPServer) Shutdown(ctx context.Context) error {
 func (a *AuthStreamableHTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	a.accessLogging(r)
 	if a.mcpAuthToken != "" {
+		requestID, err := ParseJSONRPCRequestID(r)
+		if err != nil {
+			jsonRPCError := NewJSONRPCError(nil, JSONRPCErrorParseError, "Parse error(requestID)")
+			http.Error(w, jsonRPCError.String(), http.StatusBadRequest)
+			return
+		}
+
 		// Check Authorization header
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
-			a.logger.Warn("Unauthorized request: missing authorization header",
-				slog.String("remote_addr", r.RemoteAddr),
-				slog.String("user_agent", r.UserAgent()),
-			)
-			http.Error(w, "Authorization header required", http.StatusUnauthorized)
+			jsonRPCError := NewJSONRPCError(requestID, JSONRPCErrorUnauthorized, "Unauthorized(missing authorization header)")
+			http.Error(w, jsonRPCError.String(), http.StatusUnauthorized)
 			return
 		}
 
 		// Check Bearer token format
 		if !strings.HasPrefix(authHeader, "Bearer ") {
-			a.logger.Warn("Unauthorized request: invalid authorization format",
-				slog.String("remote_addr", r.RemoteAddr),
-				slog.String("user_agent", r.UserAgent()),
-			)
-			http.Error(w, "Invalid authorization format. Use 'Bearer <token>'", http.StatusUnauthorized)
+			jsonRPCError := NewJSONRPCError(requestID, JSONRPCErrorUnauthorized, "Unauthorized(invalid authorization format)")
+			http.Error(w, jsonRPCError.String(), http.StatusUnauthorized)
 			return
 		}
 
 		// Verify token
 		token := strings.TrimPrefix(authHeader, "Bearer ")
 		if token != a.mcpAuthToken {
-			a.logger.Warn("Unauthorized request: invalid MCP auth token",
-				slog.String("remote_addr", r.RemoteAddr),
-				slog.String("user_agent", r.UserAgent()),
-			)
-			http.Error(w, "Invalid MCP auth token", http.StatusUnauthorized)
+			jsonRPCError := NewJSONRPCError(requestID, JSONRPCErrorUnauthorized, "Unauthorized(invalid MCP auth token)")
+			http.Error(w, jsonRPCError.String(), http.StatusUnauthorized)
 			return
 		}
 
@@ -117,9 +114,8 @@ func (a *AuthStreamableHTTPServer) healthzHandler(w http.ResponseWriter, _ *http
 
 func (a *AuthStreamableHTTPServer) accessLogging(r *http.Request) {
 	jsonRPC := ""
-	bodyBytes, err := io.ReadAll(r.Body)
+	bodyBytes, err := helper.ReadAndRestoreRequestBody(r)
 	if err == nil {
-		r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 		jsonRPC = string(bodyBytes)
 	}
 

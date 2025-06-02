@@ -5,6 +5,7 @@ go 1.23.3
 require (
 	github.com/ca-risken/core v0.10.1-0.20231207084139-adc99d9a725b
 	github.com/ca-risken/go-risken v0.0.0-20250413070825-f46bb57914d0
+	github.com/google/go-cmp v0.6.0
 	github.com/mark3labs/mcp-go v0.30.1
 	github.com/spf13/cobra v1.9.1
 )
