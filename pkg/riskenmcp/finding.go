@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/ca-risken/core/proto/finding"
 	"github.com/ca-risken/risken-mcp-server/pkg/helper"
@@ -21,7 +22,12 @@ func (s *Server) GetFindingResource() (mcp.ResourceTemplate, server.ResourceTemp
 
 func (s *Server) FindingResourceContentsHandler() func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
 	return func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
-		p, err := s.GetCurrentProject(ctx)
+		riskenClient, err := s.GetRISKENClient(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get RISKEN client: %w", err)
+		}
+
+		p, err := s.GetCurrentProject(ctx, riskenClient)
 		if err != nil {
 			return nil, errors.New("failed to get project")
 		}
@@ -34,7 +40,7 @@ func (s *Server) FindingResourceContentsHandler() func(ctx context.Context, requ
 		}
 
 		// Call RISKEN API
-		finding, err := s.riskenClient.GetFinding(ctx, &finding.GetFindingRequest{
+		finding, err := riskenClient.GetFinding(ctx, &finding.GetFindingRequest{
 			ProjectId: p.ProjectId,
 			FindingId: *findingID,
 		})
