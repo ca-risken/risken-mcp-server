@@ -18,23 +18,3 @@ output "mcp_endpoint" {
   value       = "${google_cloud_run_service.risken_mcp_server.status[0].url}/mcp"
 }
 
-output "mcp_client_config" {
-  description = "MCP client configuration"
-  value = {
-    mcpServers = {
-      risken = {
-        command = "npx"
-        args = [
-          "mcp-remote",
-          "${google_cloud_run_service.risken_mcp_server.status[0].url}/mcp",
-          "--header",
-          "Authorization: Bearer ${var.risken_access_token}"
-        ]
-        env = {
-          RISKEN_ACCESS_TOKEN = var.risken_access_token
-        }
-      }
-    }
-  }
-  sensitive = true
-}

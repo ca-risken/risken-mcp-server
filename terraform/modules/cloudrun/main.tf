@@ -59,22 +59,6 @@ resource "null_resource" "copy_ghcr_image" {
   depends_on = [google_artifact_registry_repository.risken_mcp]
 }
 
-# Secret Manager
-resource "google_secret_manager_secret" "risken_access_token" {
-  secret_id = "${var.service_name}-risken-access-token"
-  project   = var.project_id
-
-  replication {
-    auto {}
-  }
-}
-
-# Secret version
-resource "google_secret_manager_secret_version" "risken_access_token" {
-  secret      = google_secret_manager_secret.risken_access_token.id
-  secret_data = var.risken_access_token
-}
-
 # Cloud Run v1 API
 resource "google_cloud_run_service" "risken_mcp_server" {
   name     = var.service_name
@@ -105,15 +89,6 @@ resource "google_cloud_run_service" "risken_mcp_server" {
         env {
           name  = "RISKEN_URL"
           value = var.risken_url
-        }
-        env {
-          name = "RISKEN_ACCESS_TOKEN"
-          value_from {
-            secret_key_ref {
-              name = google_secret_manager_secret.risken_access_token.secret_id
-              key  = "latest"
-            }
-          }
         }
 
         resources {
@@ -168,13 +143,6 @@ resource "google_service_account" "cloud_run" {
   project      = var.project_id
   account_id   = "${var.service_name}-runner"
   display_name = "Service Account for ${var.service_name} Cloud Run"
-}
-
-resource "google_secret_manager_secret_iam_member" "cloud_run_secret_access" {
-  secret_id = google_secret_manager_secret.risken_access_token.secret_id
-  role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${google_service_account.cloud_run.email}"
-  project   = var.project_id
 }
 
 resource "google_artifact_registry_repository_iam_member" "cloud_run_artifact_registry" {

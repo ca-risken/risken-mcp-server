@@ -15,12 +15,6 @@ variable "service_name" {
   default     = "risken-mcp-server"
 }
 
-variable "risken_access_token" {
-  description = "RISKEN access token"
-  type        = string
-  sensitive   = true
-}
-
 variable "risken_url" {
   description = "RISKEN URL"
   type        = string

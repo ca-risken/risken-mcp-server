@@ -1,12 +1,16 @@
 # RISKEN MCP Server
 
+![Remote MCP Server](images/remote-mcp.png)
+
 The RISKEN MCP Server is a [Model Context Protocol (MCP)](https://modelcontextprotocol.io/introduction) server that provides seamless integration with RISKEN APIs, enabling advanced automation and interaction capabilities for developers and tools.
 
 ## Use Cases
 
-- Automating RISKEN data fetching and scanning.
-- Extracting and analyzing data from RISKEN.
-- Building AI powered tools and applications that interact with RISKEN's ecosystem.
+By connecting the RISKEN MCP server to your everyday AI tools, you can perform various operations such as:
+
+- Checking active alerts in RISKEN and monitoring their status.
+- Searching, analyzing, and reviewing findings including their explanations and remediation steps.
+- Archiving resolved findings to maintain a clean and organized security posture.
 
 ## Prerequisites
 

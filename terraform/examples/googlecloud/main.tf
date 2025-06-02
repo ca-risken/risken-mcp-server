@@ -17,11 +17,10 @@ provider "google" {
 module "risken_mcp_server" {
   source = "github.com/ca-risken/risken-mcp-server//terraform/modules/cloudrun?ref=main"
 
-  project_id          = "your-project-id"
-  region              = "your-region"
-  service_name        = "risken-mcp-server"
-  risken_access_token = "xxxxxx"
-  risken_url          = "https://your-risken-url"
+  project_id   = "your-project-id"
+  region       = "your-region"
+  service_name = "risken-mcp-server"
+  risken_url   = "https://your-risken-url"
 }
 
 output "mcp_endpoint" {
