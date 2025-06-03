@@ -32,6 +32,18 @@ help:
 	docker run -it --rm risken-mcp-server help
 
 ############################################################
+# Google Cloud Run
+############################################################
+.PHONY: gcp-login
+gcp-login:
+	@gcloud auth application-default login
+
+.PHONY: gcp-deploy
+gcp-deploy:
+	@cd terraform/examples/test && \
+	terraform apply
+
+############################################################
 # Stdio MCP Server Requests
 ############################################################
 .PHONY: stdio-get-project
