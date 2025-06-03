@@ -32,6 +32,18 @@ help:
 	docker run -it --rm risken-mcp-server help
 
 ############################################################
+# Google Cloud Run
+############################################################
+.PHONY: gcp-login
+gcp-login:
+	@gcloud auth application-default login
+
+.PHONY: gcp-deploy
+gcp-deploy:
+	@cd terraform/examples/test && \
+	terraform apply
+
+############################################################
 # Stdio MCP Server Requests
 ############################################################
 .PHONY: stdio-get-project
@@ -68,13 +80,18 @@ http-get-session:
 	SESSION_ID=$$(echo "$$RESPONSE" | grep -i "mcp-session-id:" | sed 's/.*mcp-session-id: *\([^ \r]*\).*/\1/' | tr -d '\r\n') && \
 	echo "$$SESSION_ID" > $(MCP_SESSION_FILE)
 
+.PHONY: cat-mcp-session
+cat-mcp-session:
+	@cat $(MCP_SESSION_FILE)
+
 .PHONY: http-tools-list
 http-tools-list: http-get-session
 	@curl -s -X POST http://127.0.0.1:${HTTP_PORT}/mcp \
 		-H "Content-Type: application/json" \
 		-H "Authorization: Bearer ${RISKEN_ACCESS_TOKEN}" \
 		-H "$$(cat $(MCP_SESSION_FILE))" \
-		-d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+		-d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' \
+		| jq .
 
 .PHONY: http-get-project
 http-get-project: http-get-session
@@ -103,8 +120,15 @@ http-search-finding: http-get-session
 		-d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"search_finding","arguments":{"from_score":0.7,"limit":5}}}' \
 		| jq .
 
-.PHONY: http-auth-error
-http-auth-error:
+.PHONY: http-error-no-auth
+http-error-no-auth:
+	@curl -s -X POST http://127.0.0.1:${HTTP_PORT}/mcp \
+		-H "Content-Type: application/json" \
+		-d '{"jsonrpc":"2.0","id":999,"method":"initialize","params":{"protocolVersion":"2024-11-05","clientInfo":{"name":"curl-client"}}}' \
+		| jq .
+
+.PHONY: http-error-invalid-auth
+http-error-invalid-auth:
 	@curl -s -X POST http://127.0.0.1:${HTTP_PORT}/mcp \
 		-H "Content-Type: application/json" \
 		-H "Authorization: Bearer INVALID_TOKEN" \

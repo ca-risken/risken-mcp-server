@@ -70,34 +70,38 @@ func (a *AuthStreamableHTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Requ
 		token = strings.TrimPrefix(authHeader, "Bearer ")
 	}
 
-	if token != "" {
-		requestID, err := ParseJSONRPCRequestID(r)
-		if err != nil {
-			jsonRPCError := NewJSONRPCError(nil, JSONRPCErrorParseError, "Parse error(requestID)")
-			http.Error(w, jsonRPCError.String(), http.StatusBadRequest)
-			return
-		}
-
-		// Verify token
-		riskenClient, err := a.createAndValidateRISKENClient(r.Context(), token)
-		if err != nil {
-			a.logger.Error("Failed to validate RISKEN client", slog.String("error", err.Error()))
-			jsonRPCError := NewJSONRPCError(requestID, JSONRPCErrorUnauthorized, fmt.Sprintf("Invalid RISKEN token: %s", err))
-			http.Error(w, jsonRPCError.String(), http.StatusUnauthorized)
-			return
-		}
-
-		// Add RISKEN Client to the request context
-		ctx := WithRISKENClient(r.Context(), riskenClient)
-		r = r.WithContext(ctx)
-
-		// Log authenticated request
-		a.logger.Debug("Authenticated request",
-			slog.String("remote_addr", r.RemoteAddr),
-			slog.String("method", r.Method),
-			slog.String("path", r.URL.Path),
-		)
+	if token == "" {
+		jsonRPCError := NewJSONRPCError(nil, JSONRPCErrorUnauthorized, "Unauthorized(no authorization header)")
+		http.Error(w, jsonRPCError.String(), http.StatusUnauthorized)
+		return
 	}
+
+	requestID, err := ParseJSONRPCRequestID(r)
+	if err != nil {
+		jsonRPCError := NewJSONRPCError(nil, JSONRPCErrorParseError, "Parse error(requestID)")
+		http.Error(w, jsonRPCError.String(), http.StatusBadRequest)
+		return
+	}
+
+	// Verify token
+	riskenClient, err := a.createAndValidateRISKENClient(r.Context(), token)
+	if err != nil {
+		a.logger.Error("Failed to validate RISKEN client", slog.String("error", err.Error()))
+		jsonRPCError := NewJSONRPCError(requestID, JSONRPCErrorUnauthorized, fmt.Sprintf("Invalid RISKEN token: %s", err))
+		http.Error(w, jsonRPCError.String(), http.StatusUnauthorized)
+		return
+	}
+
+	// Add RISKEN Client to the request context
+	ctx := WithRISKENClient(r.Context(), riskenClient)
+	r = r.WithContext(ctx)
+
+	// Log authenticated request
+	a.logger.Debug("Authenticated request",
+		slog.String("remote_addr", r.RemoteAddr),
+		slog.String("method", r.Method),
+		slog.String("path", r.URL.Path),
+	)
 
 	// Delegate to the original handler
 	a.StreamableHTTPServer.ServeHTTP(w, r)
