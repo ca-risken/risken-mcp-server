@@ -6,7 +6,7 @@ import (
 
 	"github.com/ca-risken/risken-mcp-server/pkg/logging"
 	"github.com/ca-risken/risken-mcp-server/pkg/riskenmcp"
-	"github.com/ca-risken/risken-mcp-server/pkg/stream"
+	"github.com/ca-risken/risken-mcp-server/pkg/streamablehttp"
 	"github.com/spf13/cobra"
 )
 
@@ -39,7 +39,7 @@ func runHTTPServer() error {
 
 	// Create MCP server
 	mcpserver := riskenmcp.NewServerForMultiProject(ServerName, ServerVersion, httpLogger)
-	httpServer := stream.NewAuthStreamableHTTPServer(
+	httpServer := streamablehttp.NewAuthServer(
 		mcpserver.MCPServer,
 		url,
 		httpEndpointPath,

@@ -1,4 +1,4 @@
-package stream
+package streamablehttp
 
 import (
 	"context"
@@ -13,8 +13,8 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
-// AuthStreamableHTTPServer is a wrapper for StreamableHTTPServer with authentication
-type AuthStreamableHTTPServer struct {
+// AuthServer is a wrapper for StreamableHTTPServer with authentication
+type AuthServer struct {
 	*server.StreamableHTTPServer
 	riskenURL    string
 	endpointPath string
@@ -23,9 +23,9 @@ type AuthStreamableHTTPServer struct {
 	mu           sync.RWMutex
 }
 
-// NewAutStreamableHTTPServer creates a new authenticated server instance
-func NewAuthStreamableHTTPServer(mcpServer *server.MCPServer, riskenURL, endpointPath string, logger *slog.Logger) *AuthStreamableHTTPServer {
-	return &AuthStreamableHTTPServer{
+// NewAuthServer creates a new authenticated server instance
+func NewAuthServer(mcpServer *server.MCPServer, riskenURL, endpointPath string, logger *slog.Logger) *AuthServer {
+	return &AuthServer{
 		StreamableHTTPServer: server.NewStreamableHTTPServer(mcpServer, server.WithEndpointPath(endpointPath)),
 		endpointPath:         endpointPath,
 		riskenURL:            riskenURL,
@@ -34,7 +34,7 @@ func NewAuthStreamableHTTPServer(mcpServer *server.MCPServer, riskenURL, endpoin
 }
 
 // Override Start method to apply authentication
-func (a *AuthStreamableHTTPServer) Start(addr string) error {
+func (a *AuthServer) Start(addr string) error {
 	a.mu.Lock()
 	mux := http.NewServeMux()
 	mux.Handle(a.endpointPath, a)
@@ -51,7 +51,7 @@ func (a *AuthStreamableHTTPServer) Start(addr string) error {
 }
 
 // Shutdown gracefully stops the server
-func (a *AuthStreamableHTTPServer) Shutdown(ctx context.Context) error {
+func (a *AuthServer) Shutdown(ctx context.Context) error {
 	a.mu.RLock()
 	srv := a.httpServer
 	a.mu.RUnlock()
@@ -62,7 +62,7 @@ func (a *AuthStreamableHTTPServer) Shutdown(ctx context.Context) error {
 }
 
 // ServeHTTP handles MCP requests(/mcp) with RISKEN token validation
-func (a *AuthStreamableHTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (a *AuthServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Extract requestID from JSON-RPC
 	requestID, err := riskenmcp.ParseJSONRPCRequestID(r)
 	if err != nil {
