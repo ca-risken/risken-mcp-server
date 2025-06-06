@@ -39,10 +39,11 @@ func (a *AuthStreamableHTTPServer) Start(addr string) error {
 	mux := http.NewServeMux()
 	mux.Handle(a.endpointPath, a)
 	mux.HandleFunc("/health", a.healthzHandler)
+	handler := helper.UseAccessLogging(a.logger)(mux)
 
 	a.httpServer = &http.Server{
 		Addr:        addr,
-		Handler:     mux,
+		Handler:     handler,
 		ReadTimeout: 300 * time.Second,
 	}
 	a.mu.Unlock()
@@ -62,15 +63,6 @@ func (a *AuthStreamableHTTPServer) Shutdown(ctx context.Context) error {
 
 // ServeHTTP implements the http.Handler interface with authentication
 func (a *AuthStreamableHTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	a.accessLogging(r)
-	token := helper.ExtractBearerToken(r)
-
-	if token == "" {
-		jsonRPCError := riskenmcp.NewJSONRPCError(nil, riskenmcp.JSONRPCErrorUnauthorized, "Unauthorized(no authorization header)")
-		http.Error(w, jsonRPCError.String(), http.StatusUnauthorized)
-		return
-	}
-
 	requestID, err := riskenmcp.ParseJSONRPCRequestID(r)
 	if err != nil {
 		jsonRPCError := riskenmcp.NewJSONRPCError(nil, riskenmcp.JSONRPCErrorParseError, "Parse error(requestID)")
@@ -78,10 +70,16 @@ func (a *AuthStreamableHTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	token := helper.ExtractBearerToken(r)
+	if token == "" {
+		jsonRPCError := riskenmcp.NewJSONRPCError(requestID, riskenmcp.JSONRPCErrorUnauthorized, "Unauthorized(no authorization header)")
+		http.Error(w, jsonRPCError.String(), http.StatusUnauthorized)
+		return
+	}
+
 	// Verify token
 	riskenClient, err := helper.CreateAndValidateRISKENClient(r.Context(), a.riskenURL, token)
 	if err != nil {
-		a.logger.Error("Failed to validate RISKEN client", slog.String("error", err.Error()))
 		jsonRPCError := riskenmcp.NewJSONRPCError(requestID, riskenmcp.JSONRPCErrorUnauthorized, fmt.Sprintf("Invalid RISKEN token: %s", err))
 		http.Error(w, jsonRPCError.String(), http.StatusUnauthorized)
 		return
