@@ -115,6 +115,10 @@ You can deploy the server on Google Cloud Run with Terraform.
 }
 ```
 
+## (WIP) OAuth2.1
+
+RISKEN MCP Server supports OAuth2.1.
+
 ## Tools
 
 ### Project
