@@ -61,8 +61,7 @@ func AccessLogging(r *http.Request, logger *slog.Logger, statusCode int, duratio
 		slog.String("json_rpc", jsonRPC),
 		slog.Int("status", statusCode),
 		slog.String("duration", fmt.Sprintf("%.3fms", float64(duration.Nanoseconds())/1e6)),
-		slog.String("remote_addr", r.RemoteAddr),
-		slog.String("xff", r.Header.Get("X-Forwarded-For")),
+		slog.String("client_ip", ExtractClientIP(r)),
 		slog.String("user_agent", r.UserAgent()),
 	)
 }

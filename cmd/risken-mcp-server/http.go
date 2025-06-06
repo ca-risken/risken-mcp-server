@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	httpEndpointPath = "/mcp"
+	mcpEndpointPath = "/mcp"
 )
 
 var (
@@ -42,7 +42,7 @@ func runHTTPServer() error {
 	httpServer := streamablehttp.NewAuthServer(
 		mcpserver.MCPServer,
 		url,
-		httpEndpointPath,
+		mcpEndpointPath,
 		httpLogger,
 	)
 
@@ -52,7 +52,7 @@ func runHTTPServer() error {
 		slog.String("name", ServerName),
 		slog.String("version", ServerVersion),
 		slog.String("address", addr),
-		slog.String("endpoint", httpEndpointPath),
+		slog.String("endpoint", mcpEndpointPath),
 	)
 
 	// Start server

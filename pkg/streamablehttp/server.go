@@ -72,15 +72,15 @@ func (a *AuthServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Extract token from authorization header
-	token := helper.ExtractBearerToken(r)
-	if token == "" {
+	riskenToken := helper.ExtractRISKENTokenFromHeader(r)
+	if riskenToken == "" {
 		jsonRPCError := riskenmcp.NewJSONRPCError(requestID, riskenmcp.JSONRPCErrorUnauthorized, "Unauthorized(no authorization header)")
 		http.Error(w, jsonRPCError.String(), http.StatusUnauthorized)
 		return
 	}
 
 	// Verify token
-	riskenClient, err := helper.CreateAndValidateRISKENClient(r.Context(), a.riskenURL, token)
+	riskenClient, err := helper.CreateAndValidateRISKENClient(r.Context(), a.riskenURL, riskenToken)
 	if err != nil {
 		jsonRPCError := riskenmcp.NewJSONRPCError(requestID, riskenmcp.JSONRPCErrorUnauthorized, fmt.Sprintf("Invalid RISKEN token: %s", err))
 		http.Error(w, jsonRPCError.String(), http.StatusUnauthorized)
