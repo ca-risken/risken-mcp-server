@@ -63,6 +63,7 @@ func (a *AuthStreamableHTTPServer) Shutdown(ctx context.Context) error {
 
 // ServeHTTP implements the http.Handler interface with authentication
 func (a *AuthStreamableHTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// Extract requestID from JSON-RPC
 	requestID, err := riskenmcp.ParseJSONRPCRequestID(r)
 	if err != nil {
 		jsonRPCError := riskenmcp.NewJSONRPCError(nil, riskenmcp.JSONRPCErrorParseError, "Parse error(requestID)")
@@ -70,6 +71,7 @@ func (a *AuthStreamableHTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	// Extract token from authorization header
 	token := helper.ExtractBearerToken(r)
 	if token == "" {
 		jsonRPCError := riskenmcp.NewJSONRPCError(requestID, riskenmcp.JSONRPCErrorUnauthorized, "Unauthorized(no authorization header)")
@@ -88,13 +90,6 @@ func (a *AuthStreamableHTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Requ
 	// Add RISKEN Client to the request context
 	ctx := riskenmcp.WithRISKENClient(r.Context(), riskenClient)
 	r = r.WithContext(ctx)
-
-	// Log authenticated request
-	a.logger.Debug("Authenticated request",
-		slog.String("remote_addr", r.RemoteAddr),
-		slog.String("method", r.Method),
-		slog.String("path", r.URL.Path),
-	)
 
 	// Delegate to the original handler
 	a.StreamableHTTPServer.ServeHTTP(w, r)

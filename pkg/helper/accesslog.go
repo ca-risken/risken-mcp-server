@@ -25,12 +25,24 @@ func UseAccessLogging(logger *slog.Logger) func(http.Handler) http.Handler {
 // responseWriter wraps http.ResponseWriter to capture status code
 type responseWriter struct {
 	http.ResponseWriter
-	statusCode int
+	statusCode    int
+	headerWritten bool
 }
 
 func (rw *responseWriter) WriteHeader(code int) {
+	if rw.headerWritten {
+		return
+	}
 	rw.statusCode = code
+	rw.headerWritten = true
 	rw.ResponseWriter.WriteHeader(code)
+}
+
+func (rw *responseWriter) Write(data []byte) (int, error) {
+	if !rw.headerWritten {
+		rw.WriteHeader(200)
+	}
+	return rw.ResponseWriter.Write(data)
 }
 
 func AccessLogging(r *http.Request, logger *slog.Logger, statusCode int, duration time.Duration) {
