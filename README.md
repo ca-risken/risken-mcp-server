@@ -82,7 +82,7 @@ You can deploy the server on Google Cloud Run with Terraform.
         "mcp-remote",
         "http://localhost:8080/mcp",
         "--header",
-        "Authorization: Bearer ${RISKEN_ACCESS_TOKEN}"
+        "RISKEN-ACCESS-TOKEN: ${RISKEN_ACCESS_TOKEN}"
       ],
       "env": {
         "RISKEN_ACCESS_TOKEN": "xxxxxx"
@@ -105,15 +105,19 @@ You can deploy the server on Google Cloud Run with Terraform.
         "mcp-remote",
         "http://localhost:8080/mcp",
         "--header",
-        "Authorization:${AUTH_HEADER}" // note no spaces around ':'
+        "RISKEN-ACCESS-TOKEN:${AUTH_HEADER}" // note no spaces around ':'
       ],
       "env": {
-        "AUTH_HEADER": "Bearer xxxxxx" // space OK in env
+        "RISKEN_ACCESS_TOKEN": "xxxxxx"
       }
     }
   }
 }
 ```
+
+## (WIP) OAuth2.1
+
+RISKEN MCP Server supports OAuth2.1.
 
 ## Tools
 
