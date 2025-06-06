@@ -1,4 +1,4 @@
-package riskenmcp
+package stream
 
 import (
 	"context"
@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ca-risken/go-risken"
 	"github.com/ca-risken/risken-mcp-server/pkg/helper"
+	"github.com/ca-risken/risken-mcp-server/pkg/riskenmcp"
 	"github.com/mark3labs/mcp-go/server"
 )
 
@@ -71,29 +71,29 @@ func (a *AuthStreamableHTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Requ
 	}
 
 	if token == "" {
-		jsonRPCError := NewJSONRPCError(nil, JSONRPCErrorUnauthorized, "Unauthorized(no authorization header)")
+		jsonRPCError := riskenmcp.NewJSONRPCError(nil, riskenmcp.JSONRPCErrorUnauthorized, "Unauthorized(no authorization header)")
 		http.Error(w, jsonRPCError.String(), http.StatusUnauthorized)
 		return
 	}
 
-	requestID, err := ParseJSONRPCRequestID(r)
+	requestID, err := riskenmcp.ParseJSONRPCRequestID(r)
 	if err != nil {
-		jsonRPCError := NewJSONRPCError(nil, JSONRPCErrorParseError, "Parse error(requestID)")
+		jsonRPCError := riskenmcp.NewJSONRPCError(nil, riskenmcp.JSONRPCErrorParseError, "Parse error(requestID)")
 		http.Error(w, jsonRPCError.String(), http.StatusBadRequest)
 		return
 	}
 
 	// Verify token
-	riskenClient, err := a.createAndValidateRISKENClient(r.Context(), token)
+	riskenClient, err := helper.CreateAndValidateRISKENClient(r.Context(), a.riskenURL, token)
 	if err != nil {
 		a.logger.Error("Failed to validate RISKEN client", slog.String("error", err.Error()))
-		jsonRPCError := NewJSONRPCError(requestID, JSONRPCErrorUnauthorized, fmt.Sprintf("Invalid RISKEN token: %s", err))
+		jsonRPCError := riskenmcp.NewJSONRPCError(requestID, riskenmcp.JSONRPCErrorUnauthorized, fmt.Sprintf("Invalid RISKEN token: %s", err))
 		http.Error(w, jsonRPCError.String(), http.StatusUnauthorized)
 		return
 	}
 
 	// Add RISKEN Client to the request context
-	ctx := WithRISKENClient(r.Context(), riskenClient)
+	ctx := riskenmcp.WithRISKENClient(r.Context(), riskenClient)
 	r = r.WithContext(ctx)
 
 	// Log authenticated request
@@ -105,43 +105,4 @@ func (a *AuthStreamableHTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Requ
 
 	// Delegate to the original handler
 	a.StreamableHTTPServer.ServeHTTP(w, r)
-}
-
-// createAndValidateRISKENClient creates a new RISKEN client and validates the token.
-func (a *AuthStreamableHTTPServer) createAndValidateRISKENClient(ctx context.Context, token string) (*risken.Client, error) {
-	client := risken.NewClient(token, risken.WithAPIEndpoint(a.riskenURL))
-
-	resp, err := client.Signin(ctx) // Signin to validate the token
-	if err != nil {
-		return nil, fmt.Errorf("failed to signin: %w", err)
-	}
-	if resp == nil || resp.ProjectID == 0 {
-		return nil, fmt.Errorf("invalid project: %+v", resp)
-	}
-	return client, nil
-}
-
-func (a *AuthStreamableHTTPServer) healthzHandler(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	if _, err := w.Write([]byte("OK")); err != nil {
-		a.logger.Error("Failed to write healthz response", slog.String("error", err.Error()))
-	}
-}
-
-func (a *AuthStreamableHTTPServer) accessLogging(r *http.Request) {
-	jsonRPC := ""
-	bodyBytes, err := helper.ReadAndRestoreRequestBody(r)
-	if err == nil {
-		jsonRPC = string(bodyBytes)
-	}
-
-	a.logger.Debug("Received request",
-		slog.String("method", r.Method),
-		slog.String("path", r.URL.Path),
-		slog.String("content_type", r.Header.Get("Content-Type")),
-		slog.String("mcp_session_id", r.Header.Get("Mcp-Session-Id")),
-		slog.String("json_rpc", jsonRPC),
-		slog.String("remote_addr", r.RemoteAddr),
-		slog.String("user_agent", r.UserAgent()),
-	)
 }
