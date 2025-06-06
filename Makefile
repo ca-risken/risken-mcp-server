@@ -36,6 +36,7 @@ help:
 ############################################################
 .PHONY: gcp-login
 gcp-login:
+	@gcloud auth login
 	@gcloud auth application-default login
 
 .PHONY: gcp-deploy

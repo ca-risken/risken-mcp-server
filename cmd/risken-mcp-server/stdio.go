@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 
+	"github.com/ca-risken/go-risken"
 	"github.com/ca-risken/risken-mcp-server/pkg/logging"
 	"github.com/ca-risken/risken-mcp-server/pkg/riskenmcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -46,4 +48,15 @@ func runStdioServer() error {
 
 	// ServeStdio handles signal handling and error management internally
 	return server.ServeStdio(mcpserver.MCPServer)
+}
+
+func newRISKENClient(url, token string) (*risken.Client, error) {
+	if url == "" {
+		return nil, fmt.Errorf("RISKEN_URL not set")
+	}
+	if token == "" {
+		return nil, fmt.Errorf("RISKEN_ACCESS_TOKEN not set")
+	}
+	riskenClient := risken.NewClient(token, risken.WithAPIEndpoint(url))
+	return riskenClient, nil
 }
