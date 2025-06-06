@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 )
 
 func ReadAndRestoreRequestBody(r *http.Request) ([]byte, error) {
@@ -14,4 +15,13 @@ func ReadAndRestoreRequestBody(r *http.Request) ([]byte, error) {
 	}
 	r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 	return bodyBytes, nil
+}
+
+func ExtractBearerToken(r *http.Request) string {
+	token := ""
+	authHeader := r.Header.Get("Authorization")
+	if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
+		token = strings.TrimPrefix(authHeader, "Bearer ")
+	}
+	return token
 }

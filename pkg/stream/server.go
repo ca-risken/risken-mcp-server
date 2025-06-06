@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
@@ -64,11 +63,7 @@ func (a *AuthStreamableHTTPServer) Shutdown(ctx context.Context) error {
 // ServeHTTP implements the http.Handler interface with authentication
 func (a *AuthStreamableHTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	a.accessLogging(r)
-	token := ""
-	authHeader := r.Header.Get("Authorization")
-	if authHeader != "" {
-		token = strings.TrimPrefix(authHeader, "Bearer ")
-	}
+	token := helper.ExtractBearerToken(r)
 
 	if token == "" {
 		jsonRPCError := riskenmcp.NewJSONRPCError(nil, riskenmcp.JSONRPCErrorUnauthorized, "Unauthorized(no authorization header)")

@@ -65,3 +65,54 @@ func TestReadAndRestoreRequestBody(t *testing.T) {
 		})
 	}
 }
+
+func TestExtractBearerToken(t *testing.T) {
+	tests := []struct {
+		name          string
+		authHeader    string
+		expectedToken string
+	}{
+		{
+			name:          "valid bearer token",
+			authHeader:    "Bearer valid-token-123",
+			expectedToken: "valid-token-123",
+		},
+		{
+			name:          "empty header",
+			authHeader:    "",
+			expectedToken: "",
+		},
+		{
+			name:          "invalid format",
+			authHeader:    "Basic token123",
+			expectedToken: "",
+		},
+		{
+			name:          "bearer without token",
+			authHeader:    "Bearer ",
+			expectedToken: "",
+		},
+		{
+			name:          "bearer with spaces",
+			authHeader:    "Bearer token with spaces",
+			expectedToken: "token with spaces",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req, err := http.NewRequest("GET", "/", nil)
+			if err != nil {
+				t.Fatalf("failed to create request: %v", err)
+			}
+			if tt.authHeader != "" {
+				req.Header.Set("Authorization", tt.authHeader)
+			}
+
+			got := ExtractBearerToken(req)
+			if got != tt.expectedToken {
+				t.Errorf("ExtractBearerToken() = %v, want %v", got, tt.expectedToken)
+			}
+		})
+	}
+}
