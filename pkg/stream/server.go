@@ -61,7 +61,7 @@ func (a *AuthStreamableHTTPServer) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-// ServeHTTP implements the http.Handler interface with authentication
+// ServeHTTP handles MCP requests(/mcp) with RISKEN token validation
 func (a *AuthStreamableHTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Extract requestID from JSON-RPC
 	requestID, err := riskenmcp.ParseJSONRPCRequestID(r)
