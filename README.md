@@ -71,7 +71,7 @@ You can deploy the server on Google Cloud Run with Terraform.
 
 **Note:** Since most MCP clients only allow stdio connections, it is currently necessary to use [mcp-remote](https://github.com/geelen/mcp-remote) as a proxy to connect to remote MCP servers.
 
-#### Claude Desktop(mac)
+#### Claude Desktop, Cursor ...
 
 ```json
 {
@@ -82,30 +82,7 @@ You can deploy the server on Google Cloud Run with Terraform.
         "mcp-remote",
         "http://localhost:8080/mcp",
         "--header",
-        "RISKEN-ACCESS-TOKEN: ${RISKEN_ACCESS_TOKEN}"
-      ],
-      "env": {
-        "RISKEN_ACCESS_TOKEN": "xxxxxx"
-      }
-    }
-  }
-}
-```
-
-#### Cursor (and claude desktop for windows)
-
-**Note:** Cursor and Claude Desktop (Windows) have a bug where spaces inside args aren't escaped when it invokes npx, which ends up mangling these values. You can work around it using:
-
-```json
-{
-  "mcpServers": {
-    "risken": {
-      "command": "npx",
-      "args": [
-        "mcp-remote",
-        "http://localhost:8080/mcp",
-        "--header",
-        "RISKEN-ACCESS-TOKEN:${AUTH_HEADER}" // note no spaces around ':'
+        "RISKEN-ACCESS-TOKEN:${RISKEN_ACCESS_TOKEN}"
       ],
       "env": {
         "RISKEN_ACCESS_TOKEN": "xxxxxx"
