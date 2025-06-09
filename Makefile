@@ -51,8 +51,13 @@ gcp-login:
 	@gcloud auth login
 	@gcloud auth application-default login
 
-.PHONY: gcp-deploy
-gcp-deploy:
+.PHONY: gcp-plan
+gcp-plan:
+	@cd terraform/examples/test && \
+	terraform plan
+
+.PHONY: gcp-apply
+gcp-apply:
 	@cd terraform/examples/test && \
 	terraform apply
 
