@@ -1,5 +1,5 @@
 include .env
-HTTP_PORT ?= 8084
+HTTP_PORT ?= 8098
 
 .PHONY: generate-docs
 generate-docs:
@@ -31,6 +31,7 @@ oauth: build
 		-e CLIENT_ID=${CLIENT_ID} \
 		-e CLIENT_SECRET=${CLIENT_SECRET} \
 		-e AUTHZ_METADATA_ENDPOINT=${AUTHZ_METADATA_ENDPOINT} \
+		-e JWT_SIGNING_KEY=${JWT_SIGNING_KEY} \
 		-p ${HTTP_PORT}:8080 \
 		risken-mcp-server oauth
 
