@@ -44,6 +44,7 @@ func runOAuthServer() error {
 			AuthzMetadataEndpoint: os.Getenv("AUTHZ_METADATA_ENDPOINT"),
 			ClientID:              os.Getenv("CLIENT_ID"),
 			ClientSecret:          os.Getenv("CLIENT_SECRET"),
+			JWTSigningKey:         os.Getenv("JWT_SIGNING_KEY"),
 		},
 		url,
 		mcpEndpointPath,

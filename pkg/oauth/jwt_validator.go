@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"log/slog"
 	"math/big"
-	"net/http"
 	"time"
 
+	"github.com/ca-risken/risken-mcp-server/pkg/helper"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -57,24 +57,16 @@ func NewJWTValidator(mcpServerURL string, logger *slog.Logger) *JWTValidator {
 // LoadJWKS loads JSON Web Key Set from IdP
 func (j *JWTValidator) LoadJWKS(ctx context.Context, metadata *OAuth21Metadata) error {
 	j.oauth21Metadata = metadata
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, j.oauth21Metadata.JWKSURI, nil)
-	if err != nil {
-		return fmt.Errorf("failed to create JWKS request: %w", err)
-	}
+	httpClient := helper.NewHTTPClient(j.logger)
 
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
+	// Use DoSimpleGET since we need to decode to a specific struct, not map[string]any
+	responseBody, err := httpClient.DoSimpleGET(ctx, j.oauth21Metadata.JWKSURI, "JWKS_Fetch")
 	if err != nil {
 		return fmt.Errorf("failed to fetch JWKS: %w", err)
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("JWKS request failed with status: %d", resp.StatusCode)
-	}
 
 	var keySet JWKSet
-	if err := json.NewDecoder(resp.Body).Decode(&keySet); err != nil {
+	if err := json.Unmarshal(responseBody, &keySet); err != nil {
 		return fmt.Errorf("failed to decode JWKS: %w", err)
 	}
 
@@ -89,7 +81,7 @@ func (j *JWTValidator) LoadJWKS(ctx context.Context, metadata *OAuth21Metadata) 
 // ValidateToken validates JWT access token from IdP
 func (j *JWTValidator) ValidateToken(tokenString string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-		// Verify Signing Method
+		// Verify Signing Method - RS256
 		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}

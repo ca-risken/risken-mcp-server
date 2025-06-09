@@ -115,9 +115,71 @@ You can deploy the server on Google Cloud Run with Terraform.
 }
 ```
 
-## (WIP) OAuth2.1
+## Third-Party Authorization (OAuth2.1)
 
-RISKEN MCP Server supports OAuth2.1.
+RISKEN MCP Server supports Third-Party Authorization (OAuth2.1) that enables secure authentication through external Identity Providers (IdP).
+
+### Overview
+
+The OAuth2.1 implementation follows the [MCP Authorization specification](https://modelcontextprotocol.io/specification/2025-03-26/basic/authorization#2-10-third-party-authorization-flow) with Third-Party Authorization Flow, where:
+
+1. **MCP Client** initiates OAuth flow with MCP Server
+2. **MCP Server** acts as authorization server and redirects user to IdP
+3. **IdP** authenticates user and returns to MCP Server
+4. **MCP Server** issues access token for MCP Client
+5. **MCP Client** uses access token for subsequent MCP requests
+
+
+### OAuth Flow
+
+```mermaid
+sequenceDiagram
+    participant Client as MCP Client
+    participant Server as MCP Server
+    participant Browser as User Browser
+    participant IdP as Identity Provider
+
+    Client->>Server: POST /mcp (no auth)
+    Server->>Client: 401 Unauthorized + WWW-Authenticate
+    Client->>Server: GET /.well-known/oauth-authorization-server
+    Server->>Client: Authorization metadata
+    Client->>Server: POST /register (Dynamic Client Registration)
+    Server->>Client: client_id
+    Client->>Browser: Open authorization URL
+    Browser->>IdP: User authentication
+    IdP->>Server: Authorization callback
+    Server->>IdP: Exchange code for token
+    Server->>Client: Authorization complete
+    Client->>Server: POST /mcp (with Bearer token)
+    Server->>Client: MCP response
+```
+
+### Configuration
+
+#### MCP Server Configuration
+
+The following environment variables are required for OAuth2.1 support:
+
+| Variable | Required | Description | Example |
+|----------|----------|-------------|---------|
+| `MCP_SERVER_URL` | ✅ | Public URL of MCP server | `http://localhost:8080` |
+| `AUTHZ_METADATA_ENDPOINT` | ✅ | IdP's OAuth metadata endpoint | `https://your-idp.com/.well-known/oauth-authorization-server` |
+| `CLIENT_ID` | ✅ | OAuth client ID for IdP | `your-client-id` |
+| `CLIENT_SECRET` | ✅ | OAuth client secret for IdP | `your-client-secret` |
+| `JWT_SIGNING_KEY` | ✅ | Signing key for session JWT tokens | `your-256-bit-secret` |
+
+#### Identity Provider Requirements
+
+Your IdP must support the following OAuth features:
+
+| Feature | Requirement | Description |
+|---------|-------------|-------------|
+| **Authorization Code Flow** | ✅ **REQUIRED** | Standard OAuth authorization code grant |
+| **JWKS Endpoint** | ✅ **REQUIRED** | JSON Web Key Set for JWT validation |
+| **Metadata Discovery** | ✅ **REQUIRED** | RFC 8414 Authorization Server Metadata |
+| **PKCE (S256)** | 🟡 **OPTIONAL** | Enhanced security, but not required for IdP |
+
+**Note**: PKCE is **REQUIRED** between MCP Client and MCP Server (per MCP specification), but the MCP Server can use traditional OAuth 2.0 with the IdP.
 
 ## Tools
 
