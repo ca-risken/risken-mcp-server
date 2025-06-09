@@ -134,9 +134,9 @@ The OAuth2.1 implementation follows the [MCP Authorization specification](https:
 
 ```mermaid
 sequenceDiagram
+    participant Browser as User Browser
     participant Client as MCP Client
     participant Server as MCP Server
-    participant Browser as User Browser
     participant IdP as Identity Provider
 
     Client->>Server: POST /mcp (no auth)
