@@ -59,6 +59,23 @@ resource "null_resource" "copy_ghcr_image" {
   depends_on = [google_artifact_registry_repository.risken_mcp]
 }
 
+# Secrets Manager
+data "google_secret_manager_secret" "client_id" {
+  secret_id = var.client_id_name
+  project   = var.project_id
+}
+
+data "google_secret_manager_secret" "client_secret" {
+  secret_id = var.client_secret_name
+  project   = var.project_id
+}
+
+data "google_secret_manager_secret" "jwt_signing_key" {
+  secret_id = var.jwt_signing_key_name
+  project   = var.project_id
+}
+
+
 # Cloud Run v1 API
 resource "google_cloud_run_service" "risken_mcp_server" {
   name     = var.service_name
@@ -80,7 +97,7 @@ resource "google_cloud_run_service" "risken_mcp_server" {
 
       containers {
         image = "${local.target_image_url}:${local.target_image_tag}"
-        args  = ["http"]
+        args  = ["oauth"]
 
         ports {
           container_port = 8080
@@ -89,6 +106,42 @@ resource "google_cloud_run_service" "risken_mcp_server" {
         env {
           name  = "RISKEN_URL"
           value = var.risken_url
+        }
+        env {
+          name  = "MCP_SERVER_URL"
+          value = var.mcp_server_url
+        }
+
+        env {
+          name  = "AUTHZ_METADATA_ENDPOINT"
+          value = var.authz_metadata_endpoint
+        }
+        env {
+          name = "CLIENT_ID"
+          value_from {
+            secret_key_ref {
+              name = var.client_id_name
+              key  = "latest"
+            }
+          }
+        }
+        env {
+          name = "CLIENT_SECRET"
+          value_from {
+            secret_key_ref {
+              name = var.client_secret_name
+              key  = "latest"
+            }
+          }
+        }
+        env {
+          name = "JWT_SIGNING_KEY"
+          value_from {
+            secret_key_ref {
+              name = var.jwt_signing_key_name
+              key  = "latest"
+            }
+          }
         }
 
         resources {
@@ -159,4 +212,25 @@ resource "google_cloud_run_service_iam_policy" "noauth" {
   project     = google_cloud_run_service.risken_mcp_server.project
   service     = google_cloud_run_service.risken_mcp_server.name
   policy_data = data.google_iam_policy.noauth.policy_data
+}
+
+resource "google_secret_manager_secret_iam_member" "client_id_accessor" {
+  project   = var.project_id
+  secret_id = var.client_id_name
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.cloud_run.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "client_secret_accessor" {
+  project   = var.project_id
+  secret_id = var.client_secret_name
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.cloud_run.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "jwt_signing_key_accessor" {
+  project   = var.project_id
+  secret_id = var.jwt_signing_key_name
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.cloud_run.email}"
 }

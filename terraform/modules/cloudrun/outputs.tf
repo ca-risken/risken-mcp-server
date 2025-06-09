@@ -1,11 +1,16 @@
 output "service_url" {
-  description = "Cloud Run service URL"
+  description = "URL of the Cloud Run service"
   value       = google_cloud_run_service.risken_mcp_server.status[0].url
 }
 
 output "service_name" {
-  description = "Cloud Run service name"
+  description = "Name of the Cloud Run service"
   value       = google_cloud_run_service.risken_mcp_server.name
+}
+
+output "service_account_email" {
+  description = "Email of the Cloud Run service account"
+  value       = google_service_account.cloud_run.email
 }
 
 output "artifact_registry_url" {

@@ -20,6 +20,35 @@ variable "risken_url" {
   type        = string
 }
 
+# OAuth Configuration
+variable "mcp_server_url" {
+  description = "Public URL of MCP server"
+  type        = string
+}
+
+variable "authz_metadata_endpoint" {
+  description = "IdP's OAuth metadata endpoint"
+  type        = string
+}
+
+# Client ID Configuration (choose one)
+variable "client_id_name" {
+  description = "Name of existing Secret Manager secret containing OAuth client ID"
+  type        = string
+  default     = null
+}
+
+# Secret Manager References (must be pre-created)
+variable "client_secret_name" {
+  description = "Name of existing Secret Manager secret containing OAuth client secret"
+  type        = string
+}
+
+variable "jwt_signing_key_name" {
+  description = "Name of existing Secret Manager secret containing JWT signing key"
+  type        = string
+}
+
 variable "cpu_limit" {
   description = "CPU limit"
   type        = string
