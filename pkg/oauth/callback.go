@@ -68,18 +68,24 @@ func (s *Server) handleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Exchange authorization code for access token
-	accessToken, err := s.exchangeCodeForToken(r.Context(), callbackReq.Code)
-	if err != nil {
-		s.logger.Error("Failed to exchange code for token", slog.String("error", err.Error()))
-		http.Error(w, "Token exchange failed", http.StatusInternalServerError)
+	// Store IdP authorization code for later token exchange in /token endpoint
+	sessionData.IDPCode = callbackReq.Code
+
+	// Generate internal JWT authorization code for MCP client
+	jwtSessionManager, ok := s.sessionManager.(*JWTSessionManager)
+	if !ok {
+		http.Error(w, "Session manager type error", http.StatusInternalServerError)
 		return
 	}
 
-	// Generate MCP access token
-	mcpToken := accessToken
+	internalAuthCode, err := jwtSessionManager.GenerateAuthCode(sessionData)
+	if err != nil {
+		s.logger.Error("Failed to generate authorization code", slog.String("error", err.Error()))
+		http.Error(w, "Authorization code generation failed", http.StatusInternalServerError)
+		return
+	}
 
-	// Redirect back to MCP client with authorization code
+	// Redirect back to MCP client with internal authorization code
 	clientRedirectURL, err := url.Parse(sessionData.RedirectURI)
 	if err != nil {
 		http.Error(w, "Invalid client redirect URI", http.StatusInternalServerError)
@@ -87,14 +93,9 @@ func (s *Server) handleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	params := url.Values{}
-	params.Set("code", mcpToken)           // Use access token as "code" for simplicity
+	params.Set("code", internalAuthCode)   // Use internal JWT authorization code
 	params.Set("state", sessionData.State) // Original state from MCP client
-
 	clientRedirectURL.RawQuery = params.Encode()
-
-	s.logger.Info("Redirecting back to MCP client",
-		slog.String("client_redirect_uri", clientRedirectURL.String()),
-		slog.String("original_state", sessionData.State))
 
 	// Redirect back to MCP client
 	http.Redirect(w, r, clientRedirectURL.String(), http.StatusFound)

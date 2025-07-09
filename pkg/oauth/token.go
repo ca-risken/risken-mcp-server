@@ -80,15 +80,49 @@ func (s *Server) handleToken(w http.ResponseWriter, r *http.Request) {
 		slog.String("redirect_uri", tokenReq.RedirectURI),
 		slog.String("client_id", tokenReq.ClientID))
 
-	// Note: In this simplified implementation, we use the IdP access token directly as the "code"
-	// In a proper implementation, you would store the mapping between authorization code and access token
-	idpAccessToken := tokenReq.Code
+	// Validate internal JWT authorization code and extract session data
+	jwtSessionManager, ok := s.sessionManager.(*JWTSessionManager)
+	if !ok {
+		s.logger.Error("Session manager type error")
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
 
-	// TODO: Implement PKCE verification if needed
-	// Currently, PKCE is validated between MCP Client ↔ MCP Server
-	// but not enforced between MCP Server ↔ IdP
-	s.logger.Debug("PKCE verification skipped - IdP doesn't require PKCE",
+	sessionData, err := jwtSessionManager.ValidateAuthCode(tokenReq.Code)
+	if err != nil {
+		s.logger.Error("Invalid authorization code", slog.String("error", err.Error()))
+		http.Error(w, "Invalid authorization code", http.StatusBadRequest)
+		return
+	}
+
+	// Verify PKCE code_verifier against stored code_challenge
+	if !VerifyPKCE(sessionData.CodeChallenge, tokenReq.CodeVerifier) {
+		s.logger.Error("PKCE verification failed",
+			slog.String("code_challenge", sessionData.CodeChallenge),
+			slog.String("code_verifier_length", fmt.Sprintf("%d", len(tokenReq.CodeVerifier))))
+		http.Error(w, "PKCE verification failed", http.StatusBadRequest)
+		return
+	}
+
+	// Verify redirect URI matches
+	if sessionData.RedirectURI != tokenReq.RedirectURI {
+		s.logger.Error("Redirect URI mismatch",
+			slog.String("expected", sessionData.RedirectURI),
+			slog.String("provided", tokenReq.RedirectURI))
+		http.Error(w, "Redirect URI mismatch", http.StatusBadRequest)
+		return
+	}
+
+	s.logger.Info("PKCE verification successful",
 		slog.String("code_verifier_length", fmt.Sprintf("%d", len(tokenReq.CodeVerifier))))
+
+	// Now exchange IdP authorization code for access token
+	idpAccessToken, err := s.exchangeCodeForToken(r.Context(), sessionData.IDPCode)
+	if err != nil {
+		s.logger.Error("Failed to exchange IdP code for token", slog.String("error", err.Error()))
+		http.Error(w, "Token exchange failed", http.StatusInternalServerError)
+		return
+	}
 
 	tokenResponse := NewTokenResponse(idpAccessToken)
 
