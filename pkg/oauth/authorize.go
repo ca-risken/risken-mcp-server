@@ -87,12 +87,7 @@ func (s *Server) handleAuthorize(w http.ResponseWriter, r *http.Request) {
 	params.Set("redirect_uri", s.config.MCPServerURL+"/oauth/callback") // Callback MCP server
 	params.Set("state", internalState)                                  // Our internal state
 	params.Set("scope", "openid")
-
 	authzURL.RawQuery = params.Encode()
-
-	s.logger.Info("Redirecting to IdP for authorization",
-		slog.String("idp_url", authzURL.String()),
-		slog.String("internal_state", internalState))
 
 	// Redirect to IdP for authorization
 	http.Redirect(w, r, authzURL.String(), http.StatusFound)
