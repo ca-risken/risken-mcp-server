@@ -122,11 +122,17 @@ sequenceDiagram
     Server->>Client: Authorization metadata
     Client->>Server: POST /register (Dynamic Client Registration)
     Server->>Client: client_id
-    Client->>Browser: Open authorization URL
+    Client->>Browser: Open authorization URL (with PKCE challenge)
     Browser->>IdP: User authentication
-    IdP->>Server: Authorization callback
-    Server->>IdP: Exchange code for token
-    Server->>Client: Authorization complete
+    IdP->>Browser: Redirect to callback URL (with code)
+    Browser->>Server: GET /oauth/callback (IdP code)
+    Note over Server: Store IdP code, generate internal JWT authorization code
+    Server->>Client: Authorization complete (internal code)
+    Client->>Server: POST /token (internal code + PKCE verifier)
+    Note over Server: Verify PKCE challenge/verifier
+    Server->>IdP: Exchange IdP code for access token
+    IdP->>Server: Access token
+    Server->>Client: Access token
     Client->>Server: POST /mcp (with Bearer token)
     Server->>Client: MCP response
 ```
@@ -154,9 +160,8 @@ Your IdP must support the following OAuth features:
 | **Authorization Code Flow** | ✅ **REQUIRED** | Standard OAuth authorization code grant |
 | **JWKS Endpoint** | ✅ **REQUIRED** | JSON Web Key Set for JWT validation |
 | **Metadata Discovery** | ✅ **REQUIRED** | RFC 8414 Authorization Server Metadata |
-| **PKCE (S256)** | 🟡 **OPTIONAL** | Enhanced security, but not required for IdP |
 
-**Note**: PKCE is **REQUIRED** between MCP Client and MCP Server (per MCP specification), but the MCP Server can use traditional OAuth 2.0 with the IdP.
+**Note**: PKCE verification is handled internally by the MCP Server between MCP Client and MCP Server (per MCP specification). The IdP does not need to support PKCE.
 
 ## Tools
 
