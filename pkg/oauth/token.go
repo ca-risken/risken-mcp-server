@@ -17,6 +17,7 @@ type TokenRequest struct {
 	RedirectURI  string `json:"redirect_uri" validate:"required,url"`                 // REQUIRED
 	ClientID     string `json:"client_id" validate:"required"`                        // REQUIRED for public clients
 	CodeVerifier string `json:"code_verifier" validate:"required,min=43,max=128"`     // REQUIRED for PKCE
+	State        string `json:"state,omitempty"`                                      // OPTIONAL: for state verification
 }
 
 // ParseTokenRequest parses and validates OAuth2.1 token request
@@ -31,6 +32,7 @@ func ParseTokenRequest(r *http.Request) (*TokenRequest, error) {
 		RedirectURI:  r.Form.Get("redirect_uri"),
 		ClientID:     r.Form.Get("client_id"),
 		CodeVerifier: r.Form.Get("code_verifier"),
+		State:        r.Form.Get("state"),
 	}
 
 	// Validate using tags
@@ -78,7 +80,8 @@ func (s *Server) handleToken(w http.ResponseWriter, r *http.Request) {
 	s.logger.Info("Token request received",
 		slog.String("grant_type", tokenReq.GrantType),
 		slog.String("redirect_uri", tokenReq.RedirectURI),
-		slog.String("client_id", tokenReq.ClientID))
+		slog.String("client_id", tokenReq.ClientID),
+		slog.String("state", tokenReq.State))
 
 	// Validate internal JWT authorization code and extract session data
 	jwtSessionManager, ok := s.sessionManager.(*JWTSessionManager)
@@ -113,6 +116,15 @@ func (s *Server) handleToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Verify state parameter if provided by client
+	if !verifyState(sessionData.State, tokenReq.State) {
+		s.logger.Error("State verification failed",
+			slog.String("session_state", sessionData.State),
+			slog.String("provided_state", tokenReq.State))
+		http.Error(w, "State verification failed", http.StatusBadRequest)
+		return
+	}
+
 	s.logger.Info("PKCE verification successful",
 		slog.String("code_verifier_length", fmt.Sprintf("%d", len(tokenReq.CodeVerifier))))
 
@@ -141,4 +153,16 @@ func VerifyPKCE(codeChallenge, codeVerifier string) bool {
 func generateCodeChallenge(verifier string) string {
 	hash := sha256.Sum256([]byte(verifier))
 	return base64.RawURLEncoding.EncodeToString(hash[:])
+}
+
+// verifyState verifies state parameter between session and token request
+func verifyState(sessionState, providedState string) bool {
+	// If session has no state (client didn't provide it initially),
+	// then client shouldn't provide it in token request either
+	if sessionState == "" {
+		return providedState == ""
+	}
+
+	// If session has state, client must provide matching state
+	return sessionState == providedState
 }

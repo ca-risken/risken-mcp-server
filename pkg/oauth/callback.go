@@ -13,7 +13,7 @@ import (
 // CallbackRequest represents OAuth2.1 callback parameters from IdP
 type CallbackRequest struct {
 	Code             string `json:"code,omitempty" validate:"required_if=Error ''"`
-	State            string `json:"state" validate:"required"`
+	State            string `json:"state,omitempty"`
 	Error            string `json:"error,omitempty"`
 	ErrorDescription string `json:"error_description,omitempty"`
 }
@@ -93,8 +93,13 @@ func (s *Server) handleOAuthCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	params := url.Values{}
-	params.Set("code", internalAuthCode)   // Use internal JWT authorization code
-	params.Set("state", sessionData.State) // Original state from MCP client
+	params.Set("code", internalAuthCode) // Use internal JWT authorization code
+
+	// Include state if it was provided by the client (non-empty)
+	if sessionData.State != "" {
+		params.Set("state", sessionData.State) // Original state from MCP client
+	}
+
 	clientRedirectURL.RawQuery = params.Encode()
 
 	// Redirect back to MCP client
