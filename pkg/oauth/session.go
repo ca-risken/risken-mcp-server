@@ -88,7 +88,7 @@ func (jsm *JWTSessionManager) Get(stateToken string) (*SessionData, bool) {
 	redirectURI, _ := claims["redirect_uri"].(string)
 	clientID, _ := claims["client_id"].(string)
 
-	if state == "" || codeChallenge == "" || redirectURI == "" {
+	if codeChallenge == "" || redirectURI == "" {
 		jsm.logger.Error("Missing required claims in JWT")
 		return nil, false
 	}
@@ -160,7 +160,7 @@ func (jsm *JWTSessionManager) ValidateAuthCode(authCode string) (*SessionData, e
 	clientID, _ := claims["client_id"].(string)
 	idpCode, _ := claims["idp_code"].(string)
 
-	if state == "" || codeChallenge == "" || redirectURI == "" || idpCode == "" {
+	if codeChallenge == "" || redirectURI == "" || idpCode == "" {
 		jsm.logger.Error("Missing required claims in authorization code JWT")
 		return nil, fmt.Errorf("missing required claims in authorization code")
 	}

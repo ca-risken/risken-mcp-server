@@ -13,7 +13,7 @@ type AuthorizeRequest struct {
 	ResponseType        string `json:"response_type" validate:"required,eq=code"`
 	ClientID            string `json:"client_id" validate:"required"`
 	RedirectURI         string `json:"redirect_uri" validate:"required,url"`
-	State               string `json:"state" validate:"required"`
+	State               string `json:"state,omitempty"`
 	CodeChallenge       string `json:"code_challenge" validate:"required"`
 	CodeChallengeMethod string `json:"code_challenge_method" validate:"required,eq=S256"`
 	Scope               string `json:"scope,omitempty"`
