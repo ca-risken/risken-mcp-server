@@ -13,8 +13,6 @@ import (
 )
 
 var (
-	stdioLogger = logging.NewStdioLogger(slog.LevelDebug)
-
 	stdioCmd = &cobra.Command{
 		Use:   "stdio",
 		Short: "Start stdio server",
@@ -30,6 +28,13 @@ func init() {
 }
 
 func runStdioServer() error {
+	// Set log level based on debug flag
+	level := slog.LevelInfo
+	if debug {
+		level = slog.LevelDebug
+	}
+	stdioLogger := logging.NewStdioLogger(level)
+
 	// Create RISKEN client
 	url := os.Getenv("RISKEN_URL")
 	token := os.Getenv("RISKEN_ACCESS_TOKEN")
