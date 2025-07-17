@@ -14,14 +14,14 @@ stdio: build
 	@docker run -it --rm \
 		-e RISKEN_URL=${RISKEN_URL} \
 		-e RISKEN_ACCESS_TOKEN=${RISKEN_ACCESS_TOKEN} \
-		risken-mcp-server stdio
+		risken-mcp-server stdio --debug
 
 .PHONY: http
 http: build
 	@docker run -it --rm \
 		-e RISKEN_URL=${RISKEN_URL} \
 		-p ${HTTP_PORT}:8080 \
-		risken-mcp-server http
+		risken-mcp-server http --debug
 
 .PHONY: oauth
 oauth: build
@@ -33,7 +33,7 @@ oauth: build
 		-e AUTHZ_METADATA_ENDPOINT=${AUTHZ_METADATA_ENDPOINT} \
 		-e JWT_SIGNING_KEY=${JWT_SIGNING_KEY} \
 		-p ${HTTP_PORT}:8080 \
-		risken-mcp-server oauth
+		risken-mcp-server oauth --debug
 
 .PHONY: logs
 logs:
