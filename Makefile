@@ -1,10 +1,6 @@
 include .env
 HTTP_PORT ?= 8098
 
-.PHONY: generate-docs
-generate-docs:
-	@hack/generate-tf-docs.sh
-
 .PHONY: build
 build:
 	docker build -t risken-mcp-server .
@@ -51,13 +47,22 @@ gcp-login:
 	@gcloud auth login
 	@gcloud auth application-default login
 
-.PHONY: gcp-plan
-gcp-plan:
+.PHONY: tf-doc
+tf-doc:
+	@hack/generate-tf-docs.sh
+
+.PHONY: tf-init
+tf-init:
+	@cd terraform/examples/test && \
+	terraform init
+
+.PHONY: tf-plan
+tf-plan: tf-init
 	@cd terraform/examples/test && \
 	terraform plan
 
-.PHONY: gcp-apply
-gcp-apply:
+.PHONY: tf-apply
+tf-apply:
 	@cd terraform/examples/test && \
 	terraform apply
 

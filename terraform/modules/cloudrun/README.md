@@ -57,6 +57,7 @@ No modules.
 | [google_artifact_registry_repository_iam_member.cloud_run_artifact_registry](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/artifact_registry_repository_iam_member) | resource |
 | [google_cloud_run_service.risken_mcp_server](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/cloud_run_service) | resource |
 | [google_cloud_run_service_iam_policy.noauth](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/cloud_run_service_iam_policy) | resource |
+| [google_secret_manager_secret_iam_member.client_id_accessor](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/secret_manager_secret_iam_member) | resource |
 | [google_secret_manager_secret_iam_member.client_secret_accessor](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/secret_manager_secret_iam_member) | resource |
 | [google_secret_manager_secret_iam_member.jwt_signing_key_accessor](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/secret_manager_secret_iam_member) | resource |
 | [google_service_account.cloud_run](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/service_account) | resource |
@@ -77,11 +78,12 @@ No modules.
 | <a name="input_client_secret_name"></a> [client\_secret\_name](#input\_client\_secret\_name) | Name of existing Secret Manager secret containing OAuth client secret | `string` | n/a | yes |
 | <a name="input_cpu_limit"></a> [cpu\_limit](#input\_cpu\_limit) | CPU limit | `string` | `"0.5"` | no |
 | <a name="input_create_artifact_registry"></a> [create\_artifact\_registry](#input\_create\_artifact\_registry) | Create Artifact Registry repository | `bool` | `true` | no |
-| <a name="input_custom_mcp_server_url"></a> [custom\_mcp\_server\_url](#input\_custom\_mcp\_server\_url) | Public URL of MCP server (defaults to Cloud Run URL if not specified) | `string` | `null` | no |
+| <a name="input_debug"></a> [debug](#input\_debug) | Enable debug logging | `bool` | `false` | no |
 | <a name="input_deletion_protection"></a> [deletion\_protection](#input\_deletion\_protection) | Enable deletion protection | `bool` | `false` | no |
 | <a name="input_image_retention_count"></a> [image\_retention\_count](#input\_image\_retention\_count) | Number of images to retain in Artifact Registry | `number` | `10` | no |
 | <a name="input_jwt_signing_key_name"></a> [jwt\_signing\_key\_name](#input\_jwt\_signing\_key\_name) | Name of existing Secret Manager secret containing JWT signing key | `string` | n/a | yes |
 | <a name="input_max_instances"></a> [max\_instances](#input\_max\_instances) | Maximum number of instances | `number` | `10` | no |
+| <a name="input_mcp_server_url"></a> [mcp\_server\_url](#input\_mcp\_server\_url) | Public URL of MCP server | `string` | n/a | yes |
 | <a name="input_memory_limit"></a> [memory\_limit](#input\_memory\_limit) | Memory limit | `string` | `"512Mi"` | no |
 | <a name="input_min_instances"></a> [min\_instances](#input\_min\_instances) | Minimum number of instances | `number` | `1` | no |
 | <a name="input_project_id"></a> [project\_id](#input\_project\_id) | Google Cloud project ID | `string` | n/a | yes |

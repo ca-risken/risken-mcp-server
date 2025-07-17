@@ -97,7 +97,7 @@ resource "google_cloud_run_service" "risken_mcp_server" {
 
       containers {
         image = "${local.target_image_url}:${local.target_image_tag}"
-        args  = ["oauth"]
+        args  = var.debug ? ["oauth", "--debug"] : ["oauth"]
 
         ports {
           container_port = 8080
