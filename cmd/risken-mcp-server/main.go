@@ -16,6 +16,7 @@ var (
 	version = "version"
 	commit  = "commit"
 	date    = "date"
+	debug   bool
 
 	rootCmd = &cobra.Command{
 		Use:          "risken-mcp-server",
@@ -25,6 +26,10 @@ var (
 		SilenceUsage: true,
 	}
 )
+
+func init() {
+	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Enable debug logging")
+}
 
 func main() {
 	rootCmd.SetOut(os.Stderr)

@@ -13,8 +13,7 @@ import (
 )
 
 var (
-	oauthLogger = logging.NewHTTPLogger(slog.LevelDebug)
-	oauthPort   string
+	oauthPort string
 
 	oauthCmd = &cobra.Command{
 		Use:   "oauth",
@@ -32,11 +31,18 @@ func init() {
 }
 
 func runOAuthServer() error {
+	// Set log level based on debug flag
+	level := slog.LevelInfo
+	if debug {
+		level = slog.LevelDebug
+	}
+	oauthLogger := logging.NewHTTPLogger(level)
+
 	// Create RISKEN client
 	url := os.Getenv("RISKEN_URL")
 
 	// Create MCP server
-	mcpserver := riskenmcp.NewServerForMultiProject(ServerName, ServerVersion, httpLogger)
+	mcpserver := riskenmcp.NewServerForMultiProject(ServerName, ServerVersion, oauthLogger)
 	oauthServer := oauth.NewServer(
 		mcpserver.MCPServer,
 		&oauth.Config{

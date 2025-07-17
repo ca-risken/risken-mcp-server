@@ -15,8 +15,7 @@ const (
 )
 
 var (
-	httpLogger = logging.NewHTTPLogger(slog.LevelDebug)
-	httpPort   string
+	httpPort string
 
 	httpCmd = &cobra.Command{
 		Use:   "http",
@@ -34,6 +33,13 @@ func init() {
 }
 
 func runHTTPServer() error {
+	// Set log level based on debug flag
+	level := slog.LevelInfo
+	if debug {
+		level = slog.LevelDebug
+	}
+	httpLogger := logging.NewHTTPLogger(level)
+
 	// Create RISKEN client
 	url := os.Getenv("RISKEN_URL")
 
