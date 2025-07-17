@@ -96,3 +96,9 @@ variable "deletion_protection" {
   type        = bool
   default     = false
 }
+
+variable "debug" {
+  description = "Enable debug logging"
+  type        = bool
+  default     = false
+}
