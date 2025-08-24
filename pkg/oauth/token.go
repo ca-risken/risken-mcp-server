@@ -157,12 +157,20 @@ func generateCodeChallenge(verifier string) string {
 
 // verifyState verifies state parameter between session and token request
 func verifyState(sessionState, providedState string) bool {
-	// If session has no state (client didn't provide it initially),
-	// then client shouldn't provide it in token request either
+	// If session has no state, any provided state is acceptable
 	if sessionState == "" {
-		return providedState == ""
+		return true
 	}
 
-	// If session has state, client must provide matching state
+	// If session has state, client can either:
+	// 1. Provide the same state (strict verification)
+	// 2. Provide empty state (lenient verification for multi-instance scenarios)
+	if providedState == "" {
+		// Allow empty state even when session has state
+		// This accommodates MCP clients that don't preserve state
+		return true
+	}
+
+	// If both have values, they must match
 	return sessionState == providedState
 }
