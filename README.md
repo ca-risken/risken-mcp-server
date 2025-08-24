@@ -39,7 +39,7 @@ Please add the following MCP server configuration to your MCP Client ([Claude De
         "stdio"
       ],
       "env": {
-        "RISKEN_URL": "http://localhost:8000",
+        "RISKEN_URL": "http://localhost:8098",
         "RISKEN_ACCESS_TOKEN": "your_access_token"
       }
     }
@@ -55,7 +55,7 @@ RISKEN MCP Server supports Streamable HTTP.
 
 ```bash
 docker run -it --rm \
-  -e RISKEN_URL=http://localhost:8000 \
+  -e RISKEN_URL=http://localhost:8098 \
   -e RISKEN_ACCESS_TOKEN=xxxxxx \
   -p 8080:8080 \
   ghcr.io/ca-risken/risken-mcp-server http
@@ -80,7 +80,7 @@ You can deploy the server on Google Cloud Run with Terraform.
       "command": "npx",
       "args": [
         "mcp-remote",
-        "http://localhost:8080/mcp",
+        "http://localhost:8098/mcp",
         "--header",
         "RISKEN-ACCESS-TOKEN:${RISKEN_ACCESS_TOKEN}"
       ],
