@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 
 	"github.com/ca-risken/core/proto/finding"
 	"github.com/ca-risken/go-risken"
@@ -13,22 +12,11 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
-// SearchFindingResponse represents the response for finding search.
-type SearchFindingResponse struct {
-	Findings []*finding.Finding `json:"findings,omitempty"`
-	Total    uint32             `json:"total"`
-	Offset   int32              `json:"offset"`
-	Limit    int32              `json:"limit"`
-}
-
-// SearchFinding returns a tool for searching findings.
-// Works with both Project and Organization tokens (no branching needed).
 func (s *Server) SearchFinding() (tool mcp.Tool, handler server.ToolHandlerFunc) {
 	return mcp.NewTool("search_finding",
 			mcp.WithDescription("Search RISKEN findings."),
 			mcp.WithNumber("finding_id", mcp.Description("Finding ID.")),
-			mcp.WithNumber("project_id", mcp.Description("Project ID (optional filter).")),
-			mcp.WithNumber("alert_id", mcp.Description("Alert ID.")),
+			mcp.WithNumber("alert_id", mcp.Description("Alert ID (Project token only).")),
 			mcp.WithArray("data_source",
 				mcp.Description("RISKEN DataSource."),
 				mcp.Enum("aws", "google", "code", "osint", "diagnosis", "azure"),
@@ -54,18 +42,44 @@ func (s *Server) SearchFinding() (tool mcp.Tool, handler server.ToolHandlerFunc)
 			),
 		),
 		func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			// トークンタイプに関係なく同じ処理（分岐不要）
 			riskenClient, err := s.GetRISKENClient(ctx)
 			if err != nil {
 				return mcp.NewToolResultError("no client found"), nil
 			}
-			return s.searchFindingImpl(ctx, req, riskenClient)
+
+			// Signin でトークンタイプを判定
+			signinResp, err := riskenClient.Signin(ctx)
+			if err != nil {
+				return mcp.NewToolResultError(fmt.Sprintf("failed to signin: %s", err)), nil
+			}
+
+			// Organization トークンの場合は ListFindingForOrg を使用
+			if signinResp.OrganizationID > 0 {
+				return s.searchFindingForOrg(ctx, req, riskenClient, signinResp)
+			}
+			return s.searchFindingForProject(ctx, req, riskenClient, signinResp)
 		}
 }
 
-// searchFindingImpl implements the finding search logic.
-func (s *Server) searchFindingImpl(ctx context.Context, req mcp.CallToolRequest, riskenClient *risken.Client) (*mcp.CallToolResult, error) {
-	params, err := s.parseSearchFindingParams(ctx, req, riskenClient)
+// searchFindingForOrg searches findings for Organization token.
+func (s *Server) searchFindingForOrg(ctx context.Context, req mcp.CallToolRequest, riskenClient *risken.Client, signinResp *risken.SigninResponse) (*mcp.CallToolResult, error) {
+	params, err := s.parseSearchFindingForOrgParams(req, signinResp)
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to parse params: %s", err)), nil
+	}
+
+	resp, err := riskenClient.ListFindingForOrg(ctx, params)
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to get findings: %s", err)), nil
+	}
+
+	jsonData, _ := json.Marshal(resp)
+	return mcp.NewToolResultText(string(jsonData)), nil
+}
+
+// searchFindingForProject searches findings for Project token.
+func (s *Server) searchFindingForProject(ctx context.Context, req mcp.CallToolRequest, riskenClient *risken.Client, signinResp *risken.SigninResponse) (*mcp.CallToolResult, error) {
+	params, err := s.parseSearchFindingParams(req, signinResp)
 	if err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("failed to parse params: %s", err)), nil
 	}
@@ -75,12 +89,7 @@ func (s *Server) searchFindingImpl(ctx context.Context, req mcp.CallToolRequest,
 		return mcp.NewToolResultError(fmt.Sprintf("failed to get findings: %s", err)), nil
 	}
 
-	searchResult := &SearchFindingResponse{
-		Findings: []*finding.Finding{},
-		Total:    uint32(findings.Total),
-		Offset:   int32(params.Offset),
-		Limit:    int32(params.Limit),
-	}
+	results := []*finding.Finding{}
 	for _, fid := range findings.FindingId {
 		f, err := riskenClient.GetFinding(ctx, &finding.GetFindingRequest{
 			ProjectId: params.ProjectId,
@@ -89,42 +98,26 @@ func (s *Server) searchFindingImpl(ctx context.Context, req mcp.CallToolRequest,
 		if err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("failed to get finding: %s", err)), nil
 		}
-		searchResult.Findings = append(searchResult.Findings, f.Finding)
+		results = append(results, f.Finding)
 	}
 
-	jsonData, _ := json.Marshal(searchResult)
+	response := map[string]any{
+		"findings": results,
+		"total":    findings.Total,
+		"offset":   params.Offset,
+		"limit":    params.Limit,
+	}
+	jsonData, _ := json.Marshal(response)
 	return mcp.NewToolResultText(string(jsonData)), nil
 }
 
-// parseSearchFindingParams parses the search finding parameters.
-func (s *Server) parseSearchFindingParams(ctx context.Context, req mcp.CallToolRequest, riskenClient *risken.Client) (*finding.ListFindingRequest, error) {
-	// Signin してプロジェクト情報を取得
-	signinResp, err := riskenClient.Signin(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to signin: %s", err)
-	}
-
-	param := &finding.ListFindingRequest{
-		ProjectId: signinResp.ProjectID,
-		// Default params
-		Offset:    0,
-		Limit:     10,
-		FromScore: 0.1,
-		Status:    finding.FindingStatus_FINDING_ACTIVE,
-	}
-
-	// DEBUG
-	for k, v := range req.GetArguments() {
-		s.logger.Debug("SearchFinding args", slog.String("key", k), slog.Any("value", v), slog.String("type", fmt.Sprintf("%T", v)))
-	}
-
-	// project_id が指定されている場合は上書き
-	projectID, err := helper.ParseMCPArgs[float64]("project_id", req.GetArguments())
-	if err != nil {
-		return nil, fmt.Errorf("project_id error: %s", err)
-	}
-	if projectID != nil {
-		param.ProjectId = uint32(*projectID)
+func (s *Server) parseSearchFindingForOrgParams(req mcp.CallToolRequest, signinResp *risken.SigninResponse) (*finding.ListFindingForOrgRequest, error) {
+	param := &finding.ListFindingForOrgRequest{
+		OrganizationId: signinResp.OrganizationID,
+		Offset:         0,
+		Limit:          10,
+		FromScore:      0.1,
+		Status:         finding.FindingStatus_FINDING_ACTIVE,
 	}
 
 	findingID, err := helper.ParseMCPArgs[float64]("finding_id", req.GetArguments())
@@ -135,17 +128,7 @@ func (s *Server) parseSearchFindingParams(ctx context.Context, req mcp.CallToolR
 		param.FindingId = uint64(*findingID)
 		param.FromScore = 0.0
 		param.Status = finding.FindingStatus_FINDING_UNKNOWN
-		return param, nil // finding_id is specified, so return immediately
-	}
-
-	alertID, err := helper.ParseMCPArgs[float64]("alert_id", req.GetArguments())
-	if err != nil {
-		return nil, fmt.Errorf("alert_id error: %s", err)
-	}
-	if alertID != nil {
-		param.AlertId = uint32(*alertID)
-		param.FromScore = 0.0
-		return param, nil // alert_id is specified, so return immediately
+		return param, nil
 	}
 
 	dataSource, err := helper.ParseMCPArgs[[]any]("data_source", req.GetArguments())
@@ -157,7 +140,6 @@ func (s *Server) parseSearchFindingParams(ctx context.Context, req mcp.CallToolR
 			param.DataSource = append(param.DataSource, fmt.Sprintf("%v", v))
 		}
 	}
-
 	resourceName, err := helper.ParseMCPArgs[[]any]("resource_name", req.GetArguments())
 	if err != nil {
 		return nil, fmt.Errorf("resource_name error: %s", err)
@@ -167,7 +149,6 @@ func (s *Server) parseSearchFindingParams(ctx context.Context, req mcp.CallToolR
 			param.ResourceName = append(param.ResourceName, fmt.Sprintf("%v", v))
 		}
 	}
-
 	fromScore, err := helper.ParseMCPArgs[float64]("from_score", req.GetArguments())
 	if err != nil {
 		return nil, fmt.Errorf("from_score error: %s", err)
@@ -175,7 +156,6 @@ func (s *Server) parseSearchFindingParams(ctx context.Context, req mcp.CallToolR
 	if fromScore != nil {
 		param.FromScore = float32(*fromScore)
 	}
-
 	status, err := helper.ParseMCPArgs[float64]("status", req.GetArguments())
 	if err != nil {
 		return nil, fmt.Errorf("status error: %s", err)
@@ -183,7 +163,6 @@ func (s *Server) parseSearchFindingParams(ctx context.Context, req mcp.CallToolR
 	if status != nil {
 		param.Status = finding.FindingStatus(int32(*status))
 	}
-
 	offset, err := helper.ParseMCPArgs[float64]("offset", req.GetArguments())
 	if err != nil {
 		return nil, fmt.Errorf("offset error: %s", err)
@@ -191,7 +170,6 @@ func (s *Server) parseSearchFindingParams(ctx context.Context, req mcp.CallToolR
 	if offset != nil {
 		param.Offset = int32(*offset)
 	}
-
 	limit, err := helper.ParseMCPArgs[float64]("limit", req.GetArguments())
 	if err != nil {
 		return nil, fmt.Errorf("limit error: %s", err)
@@ -199,6 +177,84 @@ func (s *Server) parseSearchFindingParams(ctx context.Context, req mcp.CallToolR
 	if limit != nil {
 		param.Limit = int32(*limit)
 	}
+	return param, nil
+}
 
+func (s *Server) parseSearchFindingParams(req mcp.CallToolRequest, signinResp *risken.SigninResponse) (*finding.ListFindingRequest, error) {
+	param := &finding.ListFindingRequest{
+		ProjectId: signinResp.ProjectID,
+		Offset:    0,
+		Limit:     10,
+		FromScore: 0.1,
+		Status:    finding.FindingStatus_FINDING_ACTIVE,
+	}
+
+	findingID, err := helper.ParseMCPArgs[float64]("finding_id", req.GetArguments())
+	if err != nil {
+		return nil, fmt.Errorf("finding_id error: %s", err)
+	}
+	if findingID != nil {
+		param.FindingId = uint64(*findingID)
+		param.FromScore = 0.0
+		param.Status = finding.FindingStatus_FINDING_UNKNOWN
+		return param, nil
+	}
+
+	alertID, err := helper.ParseMCPArgs[float64]("alert_id", req.GetArguments())
+	if err != nil {
+		return nil, fmt.Errorf("alert_id error: %s", err)
+	}
+	if alertID != nil {
+		param.AlertId = uint32(*alertID)
+		param.FromScore = 0.0
+		return param, nil
+	}
+
+	dataSource, err := helper.ParseMCPArgs[[]any]("data_source", req.GetArguments())
+	if err != nil {
+		return nil, fmt.Errorf("data_source error: %s", err)
+	}
+	if dataSource != nil {
+		for _, v := range *dataSource {
+			param.DataSource = append(param.DataSource, fmt.Sprintf("%v", v))
+		}
+	}
+	resourceName, err := helper.ParseMCPArgs[[]any]("resource_name", req.GetArguments())
+	if err != nil {
+		return nil, fmt.Errorf("resource_name error: %s", err)
+	}
+	if resourceName != nil {
+		for _, v := range *resourceName {
+			param.ResourceName = append(param.ResourceName, fmt.Sprintf("%v", v))
+		}
+	}
+	fromScore, err := helper.ParseMCPArgs[float64]("from_score", req.GetArguments())
+	if err != nil {
+		return nil, fmt.Errorf("from_score error: %s", err)
+	}
+	if fromScore != nil {
+		param.FromScore = float32(*fromScore)
+	}
+	status, err := helper.ParseMCPArgs[float64]("status", req.GetArguments())
+	if err != nil {
+		return nil, fmt.Errorf("status error: %s", err)
+	}
+	if status != nil {
+		param.Status = finding.FindingStatus(int32(*status))
+	}
+	offset, err := helper.ParseMCPArgs[float64]("offset", req.GetArguments())
+	if err != nil {
+		return nil, fmt.Errorf("offset error: %s", err)
+	}
+	if offset != nil {
+		param.Offset = int32(*offset)
+	}
+	limit, err := helper.ParseMCPArgs[float64]("limit", req.GetArguments())
+	if err != nil {
+		return nil, fmt.Errorf("limit error: %s", err)
+	}
+	if limit != nil {
+		param.Limit = int32(*limit)
+	}
 	return param, nil
 }

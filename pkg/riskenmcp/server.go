@@ -13,31 +13,24 @@ type Server struct {
 	logger       *slog.Logger
 }
 
-// NewServer creates a unified MCP server for both Project and Organization tokens.
-// For stdio mode, pass a riskenClient. For HTTP mode, pass nil (client created per-request).
 func NewServer(riskenClient *risken.Client, name, version string, logger *slog.Logger, opts ...server.ServerOption) *Server {
+	// Create a new MCP server
 	opts = addOpts(opts...)
 	s := server.NewMCPServer(name, version, opts...)
-
-	mcpserver := &Server{
-		MCPServer:    s,
-		riskenClient: riskenClient,
-		logger:       logger,
-	}
-
-	// Unified tools (support both Project and Organization tokens)
-	s.AddResourceTemplate(mcpserver.GetFindingResource())
-	s.AddTool(mcpserver.GetContext())
-	s.AddTool(mcpserver.SearchFinding())
-	s.AddTool(mcpserver.ArchiveFinding())
-	s.AddTool(mcpserver.SearchAlert())
-
+	mcpserver := createRISKENMCPServer(s, riskenClient, logger)
 	return mcpserver
 }
 
-// NewServerForMultiProject creates a MCP server for HTTP mode where client is created per-request.
 func NewServerForMultiProject(name, version string, logger *slog.Logger, opts ...server.ServerOption) *Server {
-	return NewServer(nil, name, version, logger, opts...)
+	// Create a new MCP server
+	opts = addOpts(opts...)
+	s := server.NewMCPServer(name, version, opts...)
+	mcpserver := createRISKENMCPServer(
+		s,
+		nil, // dynamic generate RISKEN client per request
+		logger,
+	)
+	return mcpserver
 }
 
 func addOpts(opts ...server.ServerOption) []server.ServerOption {
@@ -47,4 +40,18 @@ func addOpts(opts ...server.ServerOption) []server.ServerOption {
 	}
 	opts = append(defaultOpts, opts...)
 	return opts
+}
+
+func createRISKENMCPServer(s *server.MCPServer, riskenClient *risken.Client, logger *slog.Logger) *Server {
+	mcpserver := &Server{
+		MCPServer:    s,
+		riskenClient: riskenClient,
+		logger:       logger,
+	}
+	s.AddResourceTemplate(mcpserver.GetFindingResource())
+	s.AddTool(mcpserver.GetContext())
+	s.AddTool(mcpserver.SearchFinding())
+	s.AddTool(mcpserver.ArchiveFinding())
+	s.AddTool(mcpserver.SearchAlert())
+	return mcpserver
 }
