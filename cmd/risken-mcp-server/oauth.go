@@ -41,8 +41,8 @@ func runOAuthServer() error {
 	// Create RISKEN client
 	url := os.Getenv("RISKEN_URL")
 
-	// Create MCP server
-	mcpserver := riskenmcp.NewServerForMultiProject(ServerName, ServerVersion, oauthLogger)
+	// Create unified MCP server (supports both Project and Organization tokens)
+	mcpserver := riskenmcp.NewUnifiedServer(ServerName, ServerVersion, oauthLogger)
 	oauthServer := oauth.NewServer(
 		mcpserver.MCPServer,
 		&oauth.Config{

@@ -40,24 +40,33 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create RISKEN client for the user
+	// Create RISKEN client for the user (supports both Project and Organization tokens)
 	riskenToken := helper.ExtractRISKENTokenFromHeader(r)
-	riskenClient, err := helper.CreateAndValidateRISKENClient(r.Context(), s.riskenURL, riskenToken)
+	unifiedClient, err := helper.DetectAndCreateClient(r.Context(), s.riskenURL, riskenToken)
 	if err != nil {
 		jsonRPCError := riskenmcp.NewJSONRPCError(requestID, riskenmcp.JSONRPCErrorInternalError, "Failed to create RISKEN client")
 		http.Error(w, jsonRPCError.String(), http.StatusUnauthorized)
 		return
 	}
 
-	// Add to context
-	ctx := riskenmcp.WithRISKENClient(r.Context(), riskenClient)
+	// Add appropriate client to context based on token type
+	ctx := r.Context()
+	switch unifiedClient.TokenType {
+	case helper.TokenTypeProject:
+		ctx = riskenmcp.WithRISKENClient(ctx, unifiedClient.ProjectClient)
+		s.logger.Debug("JWT authenticated request (Project token)",
+			slog.String("user", claims.Email),
+			slog.String("username", claims.Username),
+			slog.String("scope", claims.Scope))
+	case helper.TokenTypeOrganization:
+		ctx = riskenmcp.WithOrganizationClient(ctx, unifiedClient.OrgClient)
+		s.logger.Debug("JWT authenticated request (Organization token)",
+			slog.String("user", claims.Email),
+			slog.String("username", claims.Username),
+			slog.String("scope", claims.Scope),
+			slog.Uint64("organization_id", uint64(unifiedClient.OrgClient.OrganizationID)))
+	}
 	r = r.WithContext(ctx)
-
-	// Log authenticated request
-	s.logger.Debug("JWT authenticated request",
-		slog.String("user", claims.Email),
-		slog.String("username", claims.Username),
-		slog.String("scope", claims.Scope))
 
 	// Delegate to MCP server
 	s.StreamableHTTPServer.ServeHTTP(w, r)

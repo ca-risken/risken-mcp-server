@@ -12,20 +12,27 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
+// SearchAlert returns a tool for searching alerts.
+// This tool is only available for Project token.
 func (s *Server) SearchAlert() (tool mcp.Tool, handler server.ToolHandlerFunc) {
 	return mcp.NewTool("search_alert",
-			mcp.WithDescription("Search RISKEN alert. Use this when a request include \"alert\", \"アラート\" ..."),
+			mcp.WithDescription("Search RISKEN alert. (Project token only)"),
 			mcp.WithNumber(
 				"status",
-				mcp.Description("Status of alert. 1: active(有効なアラート), 2: pending(保留中), 3: deactive(解決済みアラート)"),
+				mcp.Description("Status of alert. 1: active, 2: pending, 3: deactive"),
 				mcp.Enum("1", "2", "3"),
 				mcp.DefaultNumber(1),
 			),
 		),
 		func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			// Organization Token の場合はエラー
+			if _, err := s.GetOrganizationClient(ctx); err == nil {
+				return mcp.NewToolResultError("search_alert is not supported for Organization token"), nil
+			}
+
 			riskenClient, err := s.GetRISKENClient(ctx)
 			if err != nil {
-				return nil, fmt.Errorf("failed to get RISKEN client: %w", err)
+				return mcp.NewToolResultError("no client found"), nil
 			}
 
 			// Parse params
