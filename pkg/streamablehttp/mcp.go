@@ -8,7 +8,8 @@ import (
 	"github.com/ca-risken/risken-mcp-server/pkg/riskenmcp"
 )
 
-// ServeHTTP handles MCP requests(/mcp) with RISKEN token validation
+// ServeHTTP handles MCP requests(/mcp) with unified token validation.
+// Automatically detects Project or Organization token.
 func (a *AuthServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Extract requestID from JSON-RPC
 	requestID, err := riskenmcp.ParseJSONRPCRequestID(r)
@@ -26,16 +27,22 @@ func (a *AuthServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify token
-	riskenClient, err := helper.CreateAndValidateRISKENClient(r.Context(), a.riskenURL, riskenToken)
+	// Auto-detect token type and create client
+	unifiedClient, err := helper.DetectAndCreateClient(r.Context(), a.riskenURL, riskenToken)
 	if err != nil {
-		jsonRPCError := riskenmcp.NewJSONRPCError(requestID, riskenmcp.JSONRPCErrorUnauthorized, fmt.Sprintf("Invalid RISKEN token: %s", err))
+		jsonRPCError := riskenmcp.NewJSONRPCError(requestID, riskenmcp.JSONRPCErrorUnauthorized, fmt.Sprintf("Invalid token: %s", err))
 		http.Error(w, jsonRPCError.String(), http.StatusUnauthorized)
 		return
 	}
 
-	// Add RISKEN Client to the request context
-	ctx := riskenmcp.WithRISKENClient(r.Context(), riskenClient)
+	// Add the appropriate client to the request context based on token type
+	ctx := r.Context()
+	switch unifiedClient.TokenType {
+	case helper.TokenTypeOrganization:
+		ctx = riskenmcp.WithOrganizationClient(ctx, unifiedClient.OrgClient)
+	case helper.TokenTypeProject:
+		ctx = riskenmcp.WithRISKENClient(ctx, unifiedClient.ProjectClient)
+	}
 	r = r.WithContext(ctx)
 
 	// Delegate to the original handler

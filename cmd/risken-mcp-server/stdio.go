@@ -1,11 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
 
-	"github.com/ca-risken/go-risken"
+	"github.com/ca-risken/risken-mcp-server/pkg/helper"
 	"github.com/ca-risken/risken-mcp-server/pkg/logging"
 	"github.com/ca-risken/risken-mcp-server/pkg/riskenmcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -35,33 +36,45 @@ func runStdioServer() error {
 	}
 	stdioLogger := logging.NewStdioLogger(level)
 
-	// Create RISKEN client
+	// Get environment variables
 	url := os.Getenv("RISKEN_URL")
-	token := os.Getenv("RISKEN_ACCESS_TOKEN")
-	riskenClient, err := newRISKENClient(url, token)
-	if err != nil {
-		return err
+	token := os.Getenv("RISKEN_ACCESS_TOKEN") // Accepts both Project and Organization tokens
+
+	if url == "" {
+		return fmt.Errorf("RISKEN_URL not set")
+	}
+	if token == "" {
+		return fmt.Errorf("RISKEN_ACCESS_TOKEN not set")
 	}
 
-	// Create and start server
-	mcpserver := riskenmcp.NewServer(riskenClient, ServerName, ServerVersion, stdioLogger)
-	stdioLogger.Info(
-		"Starting RISKEN MCP server...",
-		slog.String("name", ServerName),
-		slog.String("version", ServerVersion),
-	)
+	// Auto-detect token type and create client
+	unifiedClient, err := helper.DetectAndCreateClient(context.Background(), url, token)
+	if err != nil {
+		return fmt.Errorf("failed to create client: %w", err)
+	}
+
+	// Create unified server with the client
+	mcpserver := riskenmcp.NewServerWithClient(unifiedClient, ServerName, ServerVersion, stdioLogger)
+
+	// Log startup info with token type
+	switch unifiedClient.TokenType {
+	case helper.TokenTypeOrganization:
+		stdioLogger.Info(
+			"Starting RISKEN MCP server...",
+			slog.String("name", ServerName),
+			slog.String("version", ServerVersion),
+			slog.String("token_type", "organization"),
+			slog.Uint64("organization_id", uint64(unifiedClient.OrgClient.OrganizationID)),
+		)
+	case helper.TokenTypeProject:
+		stdioLogger.Info(
+			"Starting RISKEN MCP server...",
+			slog.String("name", ServerName),
+			slog.String("version", ServerVersion),
+			slog.String("token_type", "project"),
+		)
+	}
 
 	// ServeStdio handles signal handling and error management internally
 	return server.ServeStdio(mcpserver.MCPServer)
-}
-
-func newRISKENClient(url, token string) (*risken.Client, error) {
-	if url == "" {
-		return nil, fmt.Errorf("RISKEN_URL not set")
-	}
-	if token == "" {
-		return nil, fmt.Errorf("RISKEN_ACCESS_TOKEN not set")
-	}
-	riskenClient := risken.NewClient(token, risken.WithAPIEndpoint(url))
-	return riskenClient, nil
 }
