@@ -84,15 +84,18 @@ func (s *Server) parseArchiveFindingParams(ctx context.Context, req mcp.CallTool
 		},
 	}
 
-	// Parse note
 	note, err := helper.ParseMCPArgs[string]("note", req.GetArguments())
 	if err != nil {
 		return nil, fmt.Errorf("note error: %s", err)
 	}
-	if note != nil && *note != "" {
-		param.PendFinding.Note = fmt.Sprintf("Archived by MCP: %s", *note)
-	} else {
+	if note != nil {
+		param.PendFinding.Note = *note
+	}
+
+	if param.PendFinding.Note == "" {
 		param.PendFinding.Note = "Archived by MCP"
+	} else {
+		param.PendFinding.Note = fmt.Sprintf("Archived by MCP: %s", *note)
 	}
 
 	return param, nil

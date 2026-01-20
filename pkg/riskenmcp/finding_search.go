@@ -13,6 +13,13 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
+type SearchFindingResponse struct {
+	Findings []*finding.Finding `json:"findings,omitempty"`
+	Total    uint32             `json:"total"`
+	Offset   int32              `json:"offset"`
+	Limit    int32              `json:"limit"`
+}
+
 func (s *Server) SearchFinding() (tool mcp.Tool, handler server.ToolHandlerFunc) {
 	return mcp.NewTool("search_finding",
 			mcp.WithDescription("Search RISKEN findings. Use this when a request include \"finding\", \"issue\", \"ファインディング\", \"問題\"..."),
@@ -22,7 +29,7 @@ func (s *Server) SearchFinding() (tool mcp.Tool, handler server.ToolHandlerFunc)
 			),
 			mcp.WithNumber(
 				"alert_id",
-				mcp.Description("Alert ID (Project token only)."),
+				mcp.Description("Alert ID."),
 			),
 			mcp.WithArray(
 				"data_source",
@@ -107,25 +114,26 @@ func (s *Server) searchFindingForProject(ctx context.Context, req mcp.CallToolRe
 		return mcp.NewToolResultError(fmt.Sprintf("failed to get findings: %s", err)), nil
 	}
 
-	results := []*finding.Finding{}
+	searchResult := &SearchFindingResponse{
+		Findings: []*finding.Finding{},
+		Total:    uint32(findings.Total),
+		Offset:   int32(params.Offset),
+		Limit:    int32(params.Limit),
+	}
 	for _, fid := range findings.FindingId {
-		f, err := riskenClient.GetFinding(ctx, &finding.GetFindingRequest{
+		finding, err := riskenClient.GetFinding(ctx, &finding.GetFindingRequest{
 			ProjectId: params.ProjectId,
 			FindingId: fid,
 		})
 		if err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("failed to get finding: %s", err)), nil
 		}
-		results = append(results, f.Finding)
+		searchResult.Findings = append(searchResult.Findings, finding.Finding)
 	}
-
-	response := map[string]any{
-		"findings": results,
-		"total":    findings.Total,
-		"offset":   params.Offset,
-		"limit":    params.Limit,
+	jsonData, err := json.Marshal(searchResult)
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to marshal search result: %s", err)), nil
 	}
-	jsonData, _ := json.Marshal(response)
 	return mcp.NewToolResultText(string(jsonData)), nil
 }
 
@@ -143,11 +151,10 @@ func (s *Server) parseSearchFindingForOrgParams(req mcp.CallToolRequest, signinR
 		return nil, fmt.Errorf("finding_id error: %s", err)
 	}
 	if findingID != nil {
-		// finding_id is specified, so return immediately
 		param.FindingId = uint64(*findingID)
 		param.FromScore = 0.0
 		param.Status = finding.FindingStatus_FINDING_UNKNOWN
-		return param, nil
+		return param, nil // finding_id is specified, so return immediately
 	}
 
 	dataSource, err := helper.ParseMCPArgs[[]any]("data_source", req.GetArguments())
@@ -219,11 +226,10 @@ func (s *Server) parseSearchFindingParams(req mcp.CallToolRequest, signinResp *r
 		return nil, fmt.Errorf("finding_id error: %s", err)
 	}
 	if findingID != nil {
-		// finding_id is specified, so return immediately
 		param.FindingId = uint64(*findingID)
 		param.FromScore = 0.0
 		param.Status = finding.FindingStatus_FINDING_UNKNOWN
-		return param, nil
+		return param, nil // finding_id is specified, so return immediately
 	}
 
 	alertID, err := helper.ParseMCPArgs[float64]("alert_id", req.GetArguments())
@@ -231,10 +237,9 @@ func (s *Server) parseSearchFindingParams(req mcp.CallToolRequest, signinResp *r
 		return nil, fmt.Errorf("alert_id error: %s", err)
 	}
 	if alertID != nil {
-		// alert_id is specified, so return immediately
 		param.AlertId = uint32(*alertID)
 		param.FromScore = 0.0
-		return param, nil
+		return param, nil // alert_id is specified, so return immediately
 	}
 
 	dataSource, err := helper.ParseMCPArgs[[]any]("data_source", req.GetArguments())

@@ -14,22 +14,13 @@ import (
 
 // ContextResponse represents the response for get_context tool.
 type ContextResponse struct {
-	TokenType string `json:"token_type"` // "project" or "organization"
-
 	// Organization Token fields
-	OrganizationID   uint32           `json:"organization_id,omitempty"`
-	OrganizationName string           `json:"organization_name,omitempty"`
-	Projects         []ProjectSummary `json:"projects,omitempty"`
+	OrganizationID   uint32 `json:"organization_id,omitempty"`
+	OrganizationName string `json:"organization_name,omitempty"`
 
 	// Project Token fields
 	ProjectID   uint32 `json:"project_id,omitempty"`
 	ProjectName string `json:"project_name,omitempty"`
-}
-
-// ProjectSummary represents a summary of a project.
-type ProjectSummary struct {
-	ProjectID   uint32 `json:"project_id"`
-	ProjectName string `json:"project_name"`
 }
 
 // GetContext returns a tool for getting the current authentication context.
@@ -71,22 +62,9 @@ func (s *Server) getContextForOrg(ctx context.Context, client *risken.Client, si
 	}
 	org := orgResp.Organization[0]
 
-	// ListProject を呼び出す（Organization 配下のプロジェクト一覧）
-	projectsResp, _ := client.ListProject(ctx, &project.ListProjectRequest{})
-
 	response := &ContextResponse{
-		TokenType:        "organization",
 		OrganizationID:   org.OrganizationId,
 		OrganizationName: org.Name,
-		Projects:         []ProjectSummary{},
-	}
-	if projectsResp != nil {
-		for _, p := range projectsResp.Project {
-			response.Projects = append(response.Projects, ProjectSummary{
-				ProjectID:   p.ProjectId,
-				ProjectName: p.Name,
-			})
-		}
 	}
 
 	jsonData, _ := json.Marshal(response)
@@ -107,7 +85,6 @@ func (s *Server) getContextForProject(ctx context.Context, client *risken.Client
 	p := projectResp.Project[0]
 
 	response := &ContextResponse{
-		TokenType:   "project",
 		ProjectID:   p.ProjectId,
 		ProjectName: p.Name,
 	}
