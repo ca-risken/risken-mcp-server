@@ -36,7 +36,6 @@ func NewServer(riskenClient *risken.Client, name, version string, logger *slog.L
 }
 
 // NewServerForMultiProject creates a MCP server for HTTP mode where client is created per-request.
-// Deprecated: Use NewServer(nil, ...) instead.
 func NewServerForMultiProject(name, version string, logger *slog.Logger, opts ...server.ServerOption) *Server {
 	return NewServer(nil, name, version, logger, opts...)
 }

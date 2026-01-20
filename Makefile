@@ -31,20 +31,6 @@ oauth: build
 		-p ${HTTP_PORT}:8080 \
 		risken-mcp-server oauth --debug
 
-.PHONY: org-stdio
-org-stdio: build
-	@docker run -it --rm \
-		-e RISKEN_URL=${RISKEN_URL} \
-		-e RISKEN_ORGANIZATION_TOKEN=${RISKEN_ORGANIZATION_TOKEN} \
-		risken-mcp-server org-stdio --debug
-
-.PHONY: org-http
-org-http: build
-	@docker run -it --rm \
-		-e RISKEN_URL=${RISKEN_URL} \
-		-p ${HTTP_PORT}:8080 \
-		risken-mcp-server org-http --debug
-
 .PHONY: logs
 logs:
 	@docker logs -f $$(docker ps -q --filter "ancestor=risken-mcp-server" | head -1)
@@ -96,43 +82,6 @@ stdio-get-project:
 		} \
 	}' | \
 		go run cmd/risken-mcp-server/*.go stdio | \
-		jq .
-
-############################################################
-# Org Stdio MCP Server Requests
-############################################################
-.PHONY: org-stdio-get-organization
-org-stdio-get-organization:
-	@export RISKEN_URL=${RISKEN_URL} && \
-	export RISKEN_ORGANIZATION_TOKEN=${RISKEN_ORGANIZATION_TOKEN} && \
-	echo '{ \
-		"jsonrpc": "2.0", \
-		"id": 1, \
-		"method": "tools/call", \
-		"params": { \
-			"name": "get_organization" \
-		} \
-	}' | \
-		go run cmd/risken-mcp-server/*.go org-stdio | \
-		jq .
-
-.PHONY: org-stdio-search-finding
-org-stdio-search-finding:
-	@export RISKEN_URL=${RISKEN_URL} && \
-	export RISKEN_ORGANIZATION_TOKEN=${RISKEN_ORGANIZATION_TOKEN} && \
-	echo '{ \
-		"jsonrpc": "2.0", \
-		"id": 1, \
-		"method": "tools/call", \
-		"params": { \
-			"name": "org_search_finding", \
-			"arguments": { \
-				"from_score": 0.7, \
-				"limit": 5 \
-			} \
-		} \
-	}' | \
-		go run cmd/risken-mcp-server/*.go org-stdio | \
 		jq .
 
 ############################################################
@@ -207,48 +156,6 @@ http-error-invalid-auth:
 		-H "Content-Type: application/json" \
 		-H "RISKEN-ACCESS-TOKEN: INVALID_TOKEN" \
 		-d '{"jsonrpc":"2.0","id":999,"method":"initialize","params":{"protocolVersion":"2024-11-05","clientInfo":{"name":"curl-client"}}}' \
-		| jq .
-
-############################################################
-# Org HTTP MCP Server Requests
-############################################################
-ORG_MCP_SESSION_FILE := /tmp/risken-org-mcp-session-id
-
-.PHONY: org-http-get-session
-org-http-get-session:
-	@RESPONSE=$$(curl -s -i -XPOST \
-	http://127.0.0.1:${HTTP_PORT}/mcp \
-		-H "Content-Type: application/json" \
-		-H "RISKEN-ACCESS-TOKEN: ${RISKEN_ORGANIZATION_TOKEN}" \
-		-d '{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"protocolVersion":"2024-11-05","clientInfo":{"name":"curl-client"}}}') && \
-	SESSION_ID=$$(echo "$$RESPONSE" | grep -i "mcp-session-id:" | sed 's/.*mcp-session-id: *\([^ \r]*\).*/\1/' | tr -d '\r\n') && \
-	echo "$$SESSION_ID" > $(ORG_MCP_SESSION_FILE)
-
-.PHONY: org-http-tools-list
-org-http-tools-list: org-http-get-session
-	@curl -s -X POST http://127.0.0.1:${HTTP_PORT}/mcp \
-		-H "Content-Type: application/json" \
-		-H "RISKEN-ACCESS-TOKEN: ${RISKEN_ORGANIZATION_TOKEN}" \
-		-H "$$(cat $(ORG_MCP_SESSION_FILE))" \
-		-d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' \
-		| jq .
-
-.PHONY: org-http-get-organization
-org-http-get-organization: org-http-get-session
-	@curl -s -X POST http://127.0.0.1:${HTTP_PORT}/mcp \
-		-H "Content-Type: application/json" \
-		-H "RISKEN-ACCESS-TOKEN: ${RISKEN_ORGANIZATION_TOKEN}" \
-		-H "$$(cat $(ORG_MCP_SESSION_FILE))" \
-		-d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"get_organization"}}' \
-		| jq .
-
-.PHONY: org-http-search-finding
-org-http-search-finding: org-http-get-session
-	@curl -s -X POST http://127.0.0.1:${HTTP_PORT}/mcp \
-		-H "Content-Type: application/json" \
-		-H "RISKEN-ACCESS-TOKEN: ${RISKEN_ORGANIZATION_TOKEN}" \
-		-H "$$(cat $(ORG_MCP_SESSION_FILE))" \
-		-d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"org_search_finding","arguments":{"from_score":0.7,"limit":5}}}' \
 		| jq .
 
 ############################################################
