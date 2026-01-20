@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 
 	"github.com/ca-risken/core/proto/finding"
 	"github.com/ca-risken/go-risken"
@@ -14,28 +15,45 @@ import (
 
 func (s *Server) SearchFinding() (tool mcp.Tool, handler server.ToolHandlerFunc) {
 	return mcp.NewTool("search_finding",
-			mcp.WithDescription("Search RISKEN findings."),
-			mcp.WithNumber("finding_id", mcp.Description("Finding ID.")),
-			mcp.WithNumber("alert_id", mcp.Description("Alert ID (Project token only).")),
-			mcp.WithArray("data_source",
-				mcp.Description("RISKEN DataSource."),
+			mcp.WithDescription("Search RISKEN findings. Use this when a request include \"finding\", \"issue\", \"ファインディング\", \"問題\"..."),
+			mcp.WithNumber(
+				"finding_id",
+				mcp.Description("Finding ID."),
+			),
+			mcp.WithNumber(
+				"alert_id",
+				mcp.Description("Alert ID (Project token only)."),
+			),
+			mcp.WithArray(
+				"data_source",
+				mcp.Description("RISKEN DataSource. e.g. aws, google, code (like github, gitlab, etc.), osint, diagnosis, azure, ..."),
 				mcp.Enum("aws", "google", "code", "osint", "diagnosis", "azure"),
 			),
-			mcp.WithArray("resource_name", mcp.Description("RISKEN ResourceName.")),
-			mcp.WithNumber("from_score",
+			mcp.WithArray(
+				"resource_name",
+				mcp.Description("RISKEN ResourceName. e.g. \"arn:aws:iam::123456789012:user/test-user\" ..."),
+			),
+			mcp.WithNumber(
+				"from_score",
 				mcp.Description("Minimum score of the findings."),
 				mcp.DefaultNumber(0.5),
 				mcp.Max(1.0),
 				mcp.Min(0.0),
 			),
-			mcp.WithNumber("status",
+			mcp.WithNumber(
+				"status",
 				mcp.Description("Status of the findings. (0: all, 1: active, 2: pending)"),
 				mcp.DefaultNumber(1),
 				mcp.Enum("0", "1", "2"),
 			),
-			mcp.WithNumber("offset", mcp.Description("Offset."), mcp.DefaultNumber(0)),
-			mcp.WithNumber("limit",
-				mcp.Description("Limit."),
+			mcp.WithNumber(
+				"offset",
+				mcp.Description("Offset of the findings."),
+				mcp.DefaultNumber(0),
+			),
+			mcp.WithNumber(
+				"limit",
+				mcp.Description("Limit of the findings."),
 				mcp.DefaultNumber(10),
 				mcp.Max(100),
 				mcp.Min(1),
@@ -44,10 +62,10 @@ func (s *Server) SearchFinding() (tool mcp.Tool, handler server.ToolHandlerFunc)
 		func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			riskenClient, err := s.GetRISKENClient(ctx)
 			if err != nil {
-				return mcp.NewToolResultError("no client found"), nil
+				return nil, fmt.Errorf("failed to get RISKEN client: %w", err)
 			}
 
-			// Signin でトークンタイプを判定
+			// Determine token type via Signin
 			signinResp, err := riskenClient.Signin(ctx)
 			if err != nil {
 				return mcp.NewToolResultError(fmt.Sprintf("failed to signin: %s", err)), nil
@@ -125,6 +143,7 @@ func (s *Server) parseSearchFindingForOrgParams(req mcp.CallToolRequest, signinR
 		return nil, fmt.Errorf("finding_id error: %s", err)
 	}
 	if findingID != nil {
+		// finding_id is specified, so return immediately
 		param.FindingId = uint64(*findingID)
 		param.FromScore = 0.0
 		param.Status = finding.FindingStatus_FINDING_UNKNOWN
@@ -183,10 +202,16 @@ func (s *Server) parseSearchFindingForOrgParams(req mcp.CallToolRequest, signinR
 func (s *Server) parseSearchFindingParams(req mcp.CallToolRequest, signinResp *risken.SigninResponse) (*finding.ListFindingRequest, error) {
 	param := &finding.ListFindingRequest{
 		ProjectId: signinResp.ProjectID,
+		// Default params
 		Offset:    0,
 		Limit:     10,
 		FromScore: 0.1,
 		Status:    finding.FindingStatus_FINDING_ACTIVE,
+	}
+
+	// DEBUG
+	for k, v := range req.GetArguments() {
+		s.logger.Debug("SearchFinding args", slog.String("key", k), slog.Any("value", v), slog.String("type", fmt.Sprintf("%T", v)))
 	}
 
 	findingID, err := helper.ParseMCPArgs[float64]("finding_id", req.GetArguments())
@@ -194,6 +219,7 @@ func (s *Server) parseSearchFindingParams(req mcp.CallToolRequest, signinResp *r
 		return nil, fmt.Errorf("finding_id error: %s", err)
 	}
 	if findingID != nil {
+		// finding_id is specified, so return immediately
 		param.FindingId = uint64(*findingID)
 		param.FromScore = 0.0
 		param.Status = finding.FindingStatus_FINDING_UNKNOWN
@@ -205,6 +231,7 @@ func (s *Server) parseSearchFindingParams(req mcp.CallToolRequest, signinResp *r
 		return nil, fmt.Errorf("alert_id error: %s", err)
 	}
 	if alertID != nil {
+		// alert_id is specified, so return immediately
 		param.AlertId = uint32(*alertID)
 		param.FromScore = 0.0
 		return param, nil

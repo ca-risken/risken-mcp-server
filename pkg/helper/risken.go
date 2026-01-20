@@ -8,7 +8,6 @@ import (
 )
 
 // CreateAndValidateRISKENClient creates a new RISKEN client and validates the token.
-// Works with both Project and Organization tokens.
 func CreateAndValidateRISKENClient(ctx context.Context, riskenURL, token string) (*risken.Client, error) {
 	client := risken.NewClient(token, risken.WithAPIEndpoint(riskenURL))
 

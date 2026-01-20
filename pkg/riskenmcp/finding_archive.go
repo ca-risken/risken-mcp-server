@@ -30,42 +30,17 @@ func (s *Server) ArchiveFinding() (tool mcp.Tool, handler server.ToolHandlerFunc
 		func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			riskenClient, err := s.GetRISKENClient(ctx)
 			if err != nil {
-				return mcp.NewToolResultError("no client found"), nil
+				return nil, fmt.Errorf("failed to get RISKEN client: %w", err)
 			}
 
-			// Parse finding_id and note
-			findingID, err := helper.ParseMCPArgs[float64]("finding_id", req.GetArguments())
-			if err != nil || findingID == nil {
-				return mcp.NewToolResultError("finding_id is required"), nil
-			}
-
-			note := "Archived by MCP"
-			if n, _ := helper.ParseMCPArgs[string]("note", req.GetArguments()); n != nil && *n != "" {
-				note = fmt.Sprintf("Archived by MCP: %s", *n)
-			}
-
-			// Signin でトークンタイプを判定
-			signinResp, err := riskenClient.Signin(ctx)
+			// Parse params
+			params, err := s.parseArchiveFindingParams(ctx, req, riskenClient)
 			if err != nil {
-				return mcp.NewToolResultError(fmt.Sprintf("failed to signin: %s", err)), nil
+				return mcp.NewToolResultError(fmt.Sprintf("failed to parse params: %s", err)), nil
 			}
 
-			// Finding を取得して project_id を特定
-			projectID, err := s.getProjectIDFromFinding(ctx, riskenClient, signinResp, uint64(*findingID))
-			if err != nil {
-				return mcp.NewToolResultError(fmt.Sprintf("failed to get finding: %s", err)), nil
-			}
-
-			// Archive finding
-			resp, err := riskenClient.PutPendFinding(ctx, &finding.PutPendFindingRequest{
-				ProjectId: projectID,
-				PendFinding: &finding.PendFindingForUpsert{
-					ProjectId: projectID,
-					FindingId: uint64(*findingID),
-					Note:      note,
-					ExpiredAt: time.Now().Add(time.Hour * 24 * 365 * 100).Unix(),
-				},
-			})
+			// Call RISKEN API
+			resp, err := riskenClient.PutPendFinding(ctx, params)
 			if err != nil {
 				return mcp.NewToolResultError(fmt.Sprintf("failed to archive finding: %s", err)), nil
 			}
@@ -77,10 +52,56 @@ func (s *Server) ArchiveFinding() (tool mcp.Tool, handler server.ToolHandlerFunc
 		}
 }
 
+func (s *Server) parseArchiveFindingParams(ctx context.Context, req mcp.CallToolRequest, riskenClient *risken.Client) (*finding.PutPendFindingRequest, error) {
+	// Determine token type via Signin
+	signinResp, err := riskenClient.Signin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to signin: %s", err)
+	}
+
+	// Parse finding_id
+	findingID, err := helper.ParseMCPArgs[float64]("finding_id", req.GetArguments())
+	if err != nil {
+		return nil, fmt.Errorf("finding_id error: %s", err)
+	}
+	if findingID == nil {
+		return nil, fmt.Errorf("finding_id is required")
+	}
+
+	// Get project_id from finding
+	projectID, err := s.getProjectIDFromFinding(ctx, riskenClient, signinResp, uint64(*findingID))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get finding: %s", err)
+	}
+
+	// Build request
+	param := &finding.PutPendFindingRequest{
+		ProjectId: projectID,
+		PendFinding: &finding.PendFindingForUpsert{
+			ProjectId: projectID,
+			FindingId: uint64(*findingID),
+			ExpiredAt: time.Now().Add(time.Hour * 24 * 365 * 100).Unix(),
+		},
+	}
+
+	// Parse note
+	note, err := helper.ParseMCPArgs[string]("note", req.GetArguments())
+	if err != nil {
+		return nil, fmt.Errorf("note error: %s", err)
+	}
+	if note != nil && *note != "" {
+		param.PendFinding.Note = fmt.Sprintf("Archived by MCP: %s", *note)
+	} else {
+		param.PendFinding.Note = "Archived by MCP"
+	}
+
+	return param, nil
+}
+
 // getProjectIDFromFinding gets the project_id from the finding.
 func (s *Server) getProjectIDFromFinding(ctx context.Context, riskenClient *risken.Client, signinResp *risken.SigninResponse, findingID uint64) (uint32, error) {
 	if signinResp.OrganizationID > 0 {
-		// Organization トークンの場合は ListFindingForOrg で取得
+		// Organization token: use ListFindingForOrg
 		resp, err := riskenClient.ListFindingForOrg(ctx, &finding.ListFindingForOrgRequest{
 			OrganizationId: signinResp.OrganizationID,
 			FindingId:      findingID,
@@ -97,7 +118,7 @@ func (s *Server) getProjectIDFromFinding(ctx context.Context, riskenClient *risk
 		return resp.Findings[0].Finding.ProjectId, nil
 	}
 
-	// Project トークンの場合は GetFinding で取得
+	// Project token: use GetFinding
 	resp, err := riskenClient.GetFinding(ctx, &finding.GetFindingRequest{
 		ProjectId: signinResp.ProjectID,
 		FindingId: findingID,

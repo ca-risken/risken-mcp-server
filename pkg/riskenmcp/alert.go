@@ -27,16 +27,16 @@ func (s *Server) SearchAlert() (tool mcp.Tool, handler server.ToolHandlerFunc) {
 		func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			riskenClient, err := s.GetRISKENClient(ctx)
 			if err != nil {
-				return mcp.NewToolResultError("no client found"), nil
+				return nil, fmt.Errorf("failed to get RISKEN client: %w", err)
 			}
 
-			// Signin でトークンタイプを判定
+			// Determine token type via Signin
 			signinResp, err := riskenClient.Signin(ctx)
 			if err != nil {
 				return mcp.NewToolResultError(fmt.Sprintf("failed to signin: %s", err)), nil
 			}
 
-			// Organization Token の場合はエラー
+			// Organization Token is not supported for this operation
 			if signinResp.OrganizationID > 0 {
 				return mcp.NewToolResultError("search_alert is not supported for Organization token"), nil
 			}
