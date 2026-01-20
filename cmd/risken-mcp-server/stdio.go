@@ -36,21 +36,15 @@ func runStdioServer() error {
 	}
 	stdioLogger := logging.NewStdioLogger(level)
 
-	// Get environment variables
+	// Create RISKEN client
 	url := os.Getenv("RISKEN_URL")
-	token := os.Getenv("RISKEN_ACCESS_TOKEN") // Accepts both Project and Organization tokens
-
-	if url == "" {
-		return fmt.Errorf("RISKEN_URL not set")
-	}
-	if token == "" {
-		return fmt.Errorf("RISKEN_ACCESS_TOKEN not set")
+	token := os.Getenv("RISKEN_ACCESS_TOKEN")
+	riskenClient, err := newRISKENClient(url, token)
+	if err != nil {
+		return err
 	}
 
-	// Create single RISKEN client (works with both Project and Organization tokens)
-	riskenClient := risken.NewClient(token, risken.WithAPIEndpoint(url))
-
-	// Signin to validate token and get token type info
+	// Signin to get token type info for logging
 	signinResp, err := riskenClient.Signin(context.Background())
 	if err != nil {
 		return fmt.Errorf("failed to signin: %w", err)
@@ -75,9 +69,19 @@ func runStdioServer() error {
 		)
 	}
 
-	// Create unified server with the client
 	mcpserver := riskenmcp.NewServer(riskenClient, ServerName, ServerVersion, stdioLogger)
 
 	// ServeStdio handles signal handling and error management internally
 	return server.ServeStdio(mcpserver.MCPServer)
+}
+
+func newRISKENClient(url, token string) (*risken.Client, error) {
+	if url == "" {
+		return nil, fmt.Errorf("RISKEN_URL not set")
+	}
+	if token == "" {
+		return nil, fmt.Errorf("RISKEN_ACCESS_TOKEN not set")
+	}
+	riskenClient := risken.NewClient(token, risken.WithAPIEndpoint(url))
+	return riskenClient, nil
 }

@@ -40,10 +40,10 @@ func runHTTPServer() error {
 	}
 	httpLogger := logging.NewHTTPLogger(level)
 
-	// Get RISKEN URL
+	// Create RISKEN client
 	url := os.Getenv("RISKEN_URL")
 
-	// Create MCP server (client created per-request)
+	// Create MCP server
 	mcpserver := riskenmcp.NewServerForMultiProject(ServerName, ServerVersion, httpLogger)
 	httpServer := streamablehttp.NewAuthServer(
 		mcpserver.MCPServer,

@@ -16,12 +16,8 @@ func CreateAndValidateRISKENClient(ctx context.Context, riskenURL, token string)
 	if err != nil {
 		return nil, fmt.Errorf("failed to signin: %w", err)
 	}
-	if resp == nil {
-		return nil, fmt.Errorf("invalid signin response")
-	}
-	// Accept both Project and Organization tokens
-	if resp.ProjectID == 0 && resp.OrganizationID == 0 {
-		return nil, fmt.Errorf("invalid token: no project_id or organization_id")
+	if resp == nil || (resp.ProjectID == 0 && resp.OrganizationID == 0) {
+		return nil, fmt.Errorf("invalid token: %+v", resp)
 	}
 	return client, nil
 }

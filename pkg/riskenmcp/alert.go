@@ -16,10 +16,10 @@ import (
 // This tool is only available for Project token.
 func (s *Server) SearchAlert() (tool mcp.Tool, handler server.ToolHandlerFunc) {
 	return mcp.NewTool("search_alert",
-			mcp.WithDescription("Search RISKEN alert. (Project token only)"),
+			mcp.WithDescription("Search RISKEN alert (Project token only). Use this when a request include \"alert\", \"アラート\" ..."),
 			mcp.WithNumber(
 				"status",
-				mcp.Description("Status of alert. 1: active, 2: pending, 3: deactive"),
+				mcp.Description("Status of alert. 1: active(有効なアラート), 2: pending(保留中), 3: deactive(解決済みアラート)"),
 				mcp.Enum("1", "2", "3"),
 				mcp.DefaultNumber(1),
 			),

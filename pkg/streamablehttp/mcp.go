@@ -1,15 +1,14 @@
 package streamablehttp
 
 import (
+	"fmt"
 	"net/http"
 
-	"github.com/ca-risken/go-risken"
 	"github.com/ca-risken/risken-mcp-server/pkg/helper"
 	"github.com/ca-risken/risken-mcp-server/pkg/riskenmcp"
 )
 
-// ServeHTTP handles MCP requests(/mcp) with unified token validation.
-// Works with both Project and Organization tokens using a single client.
+// ServeHTTP handles MCP requests(/mcp) with RISKEN token validation
 func (a *AuthServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Extract requestID from JSON-RPC
 	requestID, err := riskenmcp.ParseJSONRPCRequestID(r)
@@ -20,19 +19,17 @@ func (a *AuthServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Extract token from authorization header
-	token := helper.ExtractRISKENTokenFromHeader(r)
-	if token == "" {
+	riskenToken := helper.ExtractRISKENTokenFromHeader(r)
+	if riskenToken == "" {
 		jsonRPCError := riskenmcp.NewJSONRPCError(requestID, riskenmcp.JSONRPCErrorUnauthorized, "Unauthorized(no authorization header)")
 		http.Error(w, jsonRPCError.String(), http.StatusUnauthorized)
 		return
 	}
 
-	// Create single RISKEN client (works with both Project and Organization tokens)
-	riskenClient := risken.NewClient(token, risken.WithAPIEndpoint(a.riskenURL))
-
-	// Signin to validate token
-	if _, err := riskenClient.Signin(r.Context()); err != nil {
-		jsonRPCError := riskenmcp.NewJSONRPCError(requestID, riskenmcp.JSONRPCErrorUnauthorized, "Unauthorized: invalid token")
+	// Verify token
+	riskenClient, err := helper.CreateAndValidateRISKENClient(r.Context(), a.riskenURL, riskenToken)
+	if err != nil {
+		jsonRPCError := riskenmcp.NewJSONRPCError(requestID, riskenmcp.JSONRPCErrorUnauthorized, fmt.Sprintf("Invalid RISKEN token: %s", err))
 		http.Error(w, jsonRPCError.String(), http.StatusUnauthorized)
 		return
 	}

@@ -41,7 +41,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create single RISKEN client (works with both Project and Organization tokens)
+	// Verify token
 	riskenToken := helper.ExtractRISKENTokenFromHeader(r)
 	riskenClient := risken.NewClient(riskenToken, risken.WithAPIEndpoint(s.riskenURL))
 
