@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/ca-risken/go-risken"
 	"github.com/ca-risken/risken-mcp-server/pkg/helper"
 	"github.com/ca-risken/risken-mcp-server/pkg/riskenmcp"
 )
@@ -40,32 +41,35 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create RISKEN client for the user (supports both Project and Organization tokens)
+	// Create single RISKEN client (works with both Project and Organization tokens)
 	riskenToken := helper.ExtractRISKENTokenFromHeader(r)
-	unifiedClient, err := helper.DetectAndCreateClient(r.Context(), s.riskenURL, riskenToken)
+	riskenClient := risken.NewClient(riskenToken, risken.WithAPIEndpoint(s.riskenURL))
+
+	// Signin to validate token
+	signinResp, err := riskenClient.Signin(r.Context())
 	if err != nil {
-		jsonRPCError := riskenmcp.NewJSONRPCError(requestID, riskenmcp.JSONRPCErrorInternalError, "Failed to create RISKEN client")
+		jsonRPCError := riskenmcp.NewJSONRPCError(requestID, riskenmcp.JSONRPCErrorUnauthorized, "Failed to validate RISKEN token")
 		http.Error(w, jsonRPCError.String(), http.StatusUnauthorized)
 		return
 	}
 
-	// Add appropriate client to context based on token type
-	ctx := r.Context()
-	switch unifiedClient.TokenType {
-	case helper.TokenTypeProject:
-		ctx = riskenmcp.WithRISKENClient(ctx, unifiedClient.ProjectClient)
-		s.logger.Debug("JWT authenticated request (Project token)",
-			slog.String("user", claims.Email),
-			slog.String("username", claims.Username),
-			slog.String("scope", claims.Scope))
-	case helper.TokenTypeOrganization:
-		ctx = riskenmcp.WithOrganizationClient(ctx, unifiedClient.OrgClient)
+	// Log with token type info
+	if signinResp.OrganizationID > 0 {
 		s.logger.Debug("JWT authenticated request (Organization token)",
 			slog.String("user", claims.Email),
 			slog.String("username", claims.Username),
 			slog.String("scope", claims.Scope),
-			slog.Uint64("organization_id", uint64(unifiedClient.OrgClient.OrganizationID)))
+			slog.Uint64("organization_id", uint64(signinResp.OrganizationID)))
+	} else {
+		s.logger.Debug("JWT authenticated request (Project token)",
+			slog.String("user", claims.Email),
+			slog.String("username", claims.Username),
+			slog.String("scope", claims.Scope),
+			slog.Uint64("project_id", uint64(signinResp.ProjectID)))
 	}
+
+	// Add RISKEN Client to context
+	ctx := riskenmcp.WithRISKENClient(r.Context(), riskenClient)
 	r = r.WithContext(ctx)
 
 	// Delegate to MCP server

@@ -13,15 +13,15 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
-// archiveFindingParams represents the common parameters for archiving a finding.
+// archiveFindingParams represents the parameters for archiving a finding.
 type archiveFindingParams struct {
 	ProjectID uint32
 	FindingID uint64
 	Note      string
 }
 
-// ArchiveFinding returns a unified tool for archiving findings.
-// Automatically detects Project or Organization token.
+// ArchiveFinding returns a tool for archiving findings.
+// Works with both Project and Organization tokens (no branching needed).
 func (s *Server) ArchiveFinding() (tool mcp.Tool, handler server.ToolHandlerFunc) {
 	return mcp.NewTool("archive_finding",
 			mcp.WithDescription("Archive RISKEN finding."),
@@ -39,46 +39,17 @@ func (s *Server) ArchiveFinding() (tool mcp.Tool, handler server.ToolHandlerFunc
 			),
 		),
 		func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			// Organization Client を先に試す
-			if orgClient, err := s.GetOrganizationClient(ctx); err == nil {
-				return s.archiveFindingForOrg(ctx, req, orgClient)
-			}
-
-			// Project Client にフォールバック
+			// トークンタイプに関係なく同じ処理（分岐不要）
 			riskenClient, err := s.GetRISKENClient(ctx)
 			if err != nil {
 				return mcp.NewToolResultError("no client found"), nil
 			}
-			return s.archiveFindingForProject(ctx, req, riskenClient)
+			return s.archiveFindingImpl(ctx, req, riskenClient)
 		}
 }
 
-// archiveFindingForOrg handles finding archival for Organization token.
-func (s *Server) archiveFindingForOrg(ctx context.Context, req mcp.CallToolRequest, orgClient *helper.OrganizationClient) (*mcp.CallToolResult, error) {
-	params, err := s.parseArchiveFindingParams(req)
-	if err != nil {
-		return mcp.NewToolResultError(fmt.Sprintf("failed to parse params: %s", err)), nil
-	}
-
-	resp, err := orgClient.PutPendFinding(ctx, &helper.PutPendFindingRequest{
-		ProjectID: params.ProjectID,
-		PendFinding: &helper.PendFindingForUpsert{
-			ProjectID: params.ProjectID,
-			FindingID: params.FindingID,
-			Note:      params.Note,
-			ExpiredAt: time.Now().Add(time.Hour * 24 * 365 * 100).Unix(),
-		},
-	})
-	if err != nil {
-		return mcp.NewToolResultError(fmt.Sprintf("failed to archive finding: %s", err)), nil
-	}
-
-	jsonData, _ := json.Marshal(resp)
-	return mcp.NewToolResultText(string(jsonData)), nil
-}
-
-// archiveFindingForProject handles finding archival for Project token.
-func (s *Server) archiveFindingForProject(ctx context.Context, req mcp.CallToolRequest, riskenClient *risken.Client) (*mcp.CallToolResult, error) {
+// archiveFindingImpl implements the finding archive logic.
+func (s *Server) archiveFindingImpl(ctx context.Context, req mcp.CallToolRequest, riskenClient *risken.Client) (*mcp.CallToolResult, error) {
 	params, err := s.parseArchiveFindingParams(req)
 	if err != nil {
 		return mcp.NewToolResultError(fmt.Sprintf("failed to parse params: %s", err)), nil

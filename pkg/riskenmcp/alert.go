@@ -25,18 +25,24 @@ func (s *Server) SearchAlert() (tool mcp.Tool, handler server.ToolHandlerFunc) {
 			),
 		),
 		func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			// Organization Token の場合はエラー
-			if _, err := s.GetOrganizationClient(ctx); err == nil {
-				return mcp.NewToolResultError("search_alert is not supported for Organization token"), nil
-			}
-
 			riskenClient, err := s.GetRISKENClient(ctx)
 			if err != nil {
 				return mcp.NewToolResultError("no client found"), nil
 			}
 
+			// Signin でトークンタイプを判定
+			signinResp, err := riskenClient.Signin(ctx)
+			if err != nil {
+				return mcp.NewToolResultError(fmt.Sprintf("failed to signin: %s", err)), nil
+			}
+
+			// Organization Token の場合はエラー
+			if signinResp.OrganizationID > 0 {
+				return mcp.NewToolResultError("search_alert is not supported for Organization token"), nil
+			}
+
 			// Parse params
-			params, err := s.ParseSearchAlertParams(ctx, req, riskenClient)
+			params, err := s.parseSearchAlertParams(ctx, req, riskenClient, signinResp)
 			if err != nil {
 				return mcp.NewToolResultError(fmt.Sprintf("failed to parse params: %s", err)), nil
 			}
@@ -54,13 +60,9 @@ func (s *Server) SearchAlert() (tool mcp.Tool, handler server.ToolHandlerFunc) {
 		}
 }
 
-func (s *Server) ParseSearchAlertParams(ctx context.Context, req mcp.CallToolRequest, riskenClient *risken.Client) (*alert.ListAlertRequest, error) {
-	p, err := s.GetCurrentProject(ctx, riskenClient)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get project: %s", err)
-	}
+func (s *Server) parseSearchAlertParams(ctx context.Context, req mcp.CallToolRequest, riskenClient *risken.Client, signinResp *risken.SigninResponse) (*alert.ListAlertRequest, error) {
 	param := &alert.ListAlertRequest{
-		ProjectId: p.ProjectId,
+		ProjectId: signinResp.ProjectID,
 		Status:    []alert.Status{alert.Status_ACTIVE},
 	}
 

@@ -3,7 +3,7 @@ module github.com/ca-risken/risken-mcp-server
 go 1.23.3
 
 require (
-	github.com/ca-risken/core v0.10.1-0.20231207084139-adc99d9a725b
+	github.com/ca-risken/core v0.16.1-0.20251216042417-26bb3df8cf68
 	github.com/ca-risken/go-risken v0.0.0-20250413070825-f46bb57914d0
 	github.com/go-playground/validator/v10 v10.26.0
 	github.com/golang-jwt/jwt/v5 v5.2.2
@@ -26,7 +26,6 @@ require (
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/stretchr/testify v1.10.0 // indirect
-	github.com/vikyd/zero v0.0.0-20190921142904-0f738d0bc858 // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	golang.org/x/crypto v0.36.0 // indirect
 	golang.org/x/net v0.38.0 // indirect

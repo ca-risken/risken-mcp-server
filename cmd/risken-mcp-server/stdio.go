@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/ca-risken/risken-mcp-server/pkg/helper"
+	"github.com/ca-risken/go-risken"
 	"github.com/ca-risken/risken-mcp-server/pkg/logging"
 	"github.com/ca-risken/risken-mcp-server/pkg/riskenmcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -47,33 +47,36 @@ func runStdioServer() error {
 		return fmt.Errorf("RISKEN_ACCESS_TOKEN not set")
 	}
 
-	// Auto-detect token type and create client
-	unifiedClient, err := helper.DetectAndCreateClient(context.Background(), url, token)
+	// Create single RISKEN client (works with both Project and Organization tokens)
+	riskenClient := risken.NewClient(token, risken.WithAPIEndpoint(url))
+
+	// Signin to validate token and get token type info
+	signinResp, err := riskenClient.Signin(context.Background())
 	if err != nil {
-		return fmt.Errorf("failed to create client: %w", err)
+		return fmt.Errorf("failed to signin: %w", err)
 	}
 
-	// Create unified server with the client
-	mcpserver := riskenmcp.NewServerWithClient(unifiedClient, ServerName, ServerVersion, stdioLogger)
-
 	// Log startup info with token type
-	switch unifiedClient.TokenType {
-	case helper.TokenTypeOrganization:
+	if signinResp.OrganizationID > 0 {
 		stdioLogger.Info(
 			"Starting RISKEN MCP server...",
 			slog.String("name", ServerName),
 			slog.String("version", ServerVersion),
 			slog.String("token_type", "organization"),
-			slog.Uint64("organization_id", uint64(unifiedClient.OrgClient.OrganizationID)),
+			slog.Uint64("organization_id", uint64(signinResp.OrganizationID)),
 		)
-	case helper.TokenTypeProject:
+	} else {
 		stdioLogger.Info(
 			"Starting RISKEN MCP server...",
 			slog.String("name", ServerName),
 			slog.String("version", ServerVersion),
 			slog.String("token_type", "project"),
+			slog.Uint64("project_id", uint64(signinResp.ProjectID)),
 		)
 	}
+
+	// Create unified server with the client
+	mcpserver := riskenmcp.NewServer(riskenClient, ServerName, ServerVersion, stdioLogger)
 
 	// ServeStdio handles signal handling and error management internally
 	return server.ServeStdio(mcpserver.MCPServer)

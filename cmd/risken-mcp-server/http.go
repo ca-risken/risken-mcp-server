@@ -43,8 +43,8 @@ func runHTTPServer() error {
 	// Get RISKEN URL
 	url := os.Getenv("RISKEN_URL")
 
-	// Create unified MCP server
-	mcpserver := riskenmcp.NewServer(ServerName, ServerVersion, httpLogger)
+	// Create unified MCP server (nil client - created per-request)
+	mcpserver := riskenmcp.NewServer(nil, ServerName, ServerVersion, httpLogger)
 	httpServer := streamablehttp.NewAuthServer(
 		mcpserver.MCPServer,
 		url,
