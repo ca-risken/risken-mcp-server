@@ -44,14 +44,14 @@ func runStdioServer() error {
 		return err
 	}
 
+	// Create and start server
+	mcpserver := riskenmcp.NewServer(riskenClient, ServerName, ServerVersion, stdioLogger)
+
 	// Signin to get token type info for logging
 	signinResp, err := riskenClient.Signin(context.Background())
 	if err != nil {
 		return fmt.Errorf("failed to signin: %w", err)
 	}
-
-	// Create and start server
-	mcpserver := riskenmcp.NewServer(riskenClient, ServerName, ServerVersion, stdioLogger)
 	if signinResp.OrganizationID > 0 {
 		stdioLogger.Info(
 			"Starting RISKEN MCP server...",

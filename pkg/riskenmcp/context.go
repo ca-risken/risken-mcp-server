@@ -26,7 +26,7 @@ type ContextResponse struct {
 // GetContext returns a tool for getting the current authentication context.
 func (s *Server) GetContext() (tool mcp.Tool, handler server.ToolHandlerFunc) {
 	return mcp.NewTool("get_context",
-			mcp.WithDescription(`Get the current authentication context.
+			mcp.WithDescription(`Get the current authentication context. Use this when a request include "project", "my project", "プロジェクト", "organization", "組織"...
 Returns Organization info if using Organization token, or Project info if using Project token.`),
 		),
 		func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {

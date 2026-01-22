@@ -34,9 +34,9 @@ func (s *Server) SearchAlert() (tool mcp.Tool, handler server.ToolHandlerFunc) {
 				return mcp.NewToolResultError(fmt.Sprintf("failed to signin: %s", err)), nil
 			}
 
-			// Organization Token is not supported for this operation
+			// Organization Token is not supported for alert operations
 			if signinResp.OrganizationID > 0 {
-				return mcp.NewToolResultError("search_alert is not supported for Organization token"), nil
+				return mcp.NewToolResultError("search_alert is only available with Project token. Please use a Project token to search alerts."), nil
 			}
 
 			// Parse params

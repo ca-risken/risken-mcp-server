@@ -59,7 +59,6 @@ func (s *Server) parseArchiveFindingParams(ctx context.Context, req mcp.CallTool
 		return nil, fmt.Errorf("failed to signin: %s", err)
 	}
 
-	// Parse finding_id
 	findingID, err := helper.ParseMCPArgs[float64]("finding_id", req.GetArguments())
 	if err != nil {
 		return nil, fmt.Errorf("finding_id error: %s", err)

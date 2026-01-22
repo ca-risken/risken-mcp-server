@@ -98,7 +98,23 @@ func (s *Server) searchFindingForOrg(ctx context.Context, req mcp.CallToolReques
 		return mcp.NewToolResultError(fmt.Sprintf("failed to get findings: %s", err)), nil
 	}
 
-	jsonData, _ := json.Marshal(resp)
+	// Convert to SearchFindingResponse format (same as searchFindingForProject)
+	searchResult := &SearchFindingResponse{
+		Findings: []*finding.Finding{},
+		Total:    resp.Total,
+		Offset:   params.Offset,
+		Limit:    params.Limit,
+	}
+	for _, fd := range resp.Findings {
+		if fd.Finding != nil {
+			searchResult.Findings = append(searchResult.Findings, fd.Finding)
+		}
+	}
+
+	jsonData, err := json.Marshal(searchResult)
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to marshal search result: %s", err)), nil
+	}
 	return mcp.NewToolResultText(string(jsonData)), nil
 }
 
