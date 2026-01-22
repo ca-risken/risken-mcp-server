@@ -27,9 +27,12 @@ func (s *Server) FindingResourceContentsHandler() func(ctx context.Context, requ
 			return nil, fmt.Errorf("failed to get RISKEN client: %w", err)
 		}
 
-		p, err := s.GetCurrentProject(ctx, riskenClient)
+		projectID, err := helper.ParseMCPArgs[uint64]("project_id", request.Params.Arguments)
 		if err != nil {
-			return nil, errors.New("failed to get project")
+			return nil, errors.New("failed to parse project_id")
+		}
+		if projectID == nil {
+			return nil, errors.New("project_id is required")
 		}
 		findingID, err := helper.ParseMCPArgs[uint64]("finding_id", request.Params.Arguments)
 		if err != nil {
@@ -41,7 +44,7 @@ func (s *Server) FindingResourceContentsHandler() func(ctx context.Context, requ
 
 		// Call RISKEN API
 		finding, err := riskenClient.GetFinding(ctx, &finding.GetFindingRequest{
-			ProjectId: p.ProjectId,
+			ProjectId: uint32(*projectID),
 			FindingId: *findingID,
 		})
 		if err != nil {

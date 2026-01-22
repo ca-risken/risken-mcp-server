@@ -12,8 +12,6 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
-// SearchAlert returns a tool for searching alerts.
-// This tool is only available for Project token.
 func (s *Server) SearchAlert() (tool mcp.Tool, handler server.ToolHandlerFunc) {
 	return mcp.NewTool("search_alert",
 			mcp.WithDescription("Search RISKEN alert (Project token only). Use this when a request include \"alert\", \"アラート\" ..."),

@@ -50,7 +50,8 @@ func runStdioServer() error {
 		return fmt.Errorf("failed to signin: %w", err)
 	}
 
-	// Log startup info with token type
+	// Create and start server
+	mcpserver := riskenmcp.NewServer(riskenClient, ServerName, ServerVersion, stdioLogger)
 	if signinResp.OrganizationID > 0 {
 		stdioLogger.Info(
 			"Starting RISKEN MCP server...",
@@ -68,8 +69,6 @@ func runStdioServer() error {
 			slog.Uint64("project_id", uint64(signinResp.ProjectID)),
 		)
 	}
-
-	mcpserver := riskenmcp.NewServer(riskenClient, ServerName, ServerVersion, stdioLogger)
 
 	// ServeStdio handles signal handling and error management internally
 	return server.ServeStdio(mcpserver.MCPServer)
