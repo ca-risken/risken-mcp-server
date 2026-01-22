@@ -14,7 +14,7 @@ import (
 
 func (s *Server) SearchAlert() (tool mcp.Tool, handler server.ToolHandlerFunc) {
 	return mcp.NewTool("search_alert",
-			mcp.WithDescription("Search RISKEN alert. Use this when a request include \"alert\", \"アラート\" ..."),
+			mcp.WithDescription("Search RISKEN alert (Project token only). Use this when a request include \"alert\", \"アラート\" ..."),
 			mcp.WithNumber(
 				"status",
 				mcp.Description("Status of alert. 1: active(有効なアラート), 2: pending(保留中), 3: deactive(解決済みアラート)"),
@@ -28,8 +28,19 @@ func (s *Server) SearchAlert() (tool mcp.Tool, handler server.ToolHandlerFunc) {
 				return nil, fmt.Errorf("failed to get RISKEN client: %w", err)
 			}
 
+			// Determine token type via Signin
+			signinResp, err := riskenClient.Signin(ctx)
+			if err != nil {
+				return mcp.NewToolResultError(fmt.Sprintf("failed to signin: %s", err)), nil
+			}
+
+			// Organization Token is not supported for alert operations
+			if signinResp.OrganizationID > 0 {
+				return mcp.NewToolResultError("search_alert is only available with Project token. Please use a Project token to search alerts."), nil
+			}
+
 			// Parse params
-			params, err := s.ParseSearchAlertParams(ctx, req, riskenClient)
+			params, err := s.parseSearchAlertParams(ctx, req, riskenClient, signinResp)
 			if err != nil {
 				return mcp.NewToolResultError(fmt.Sprintf("failed to parse params: %s", err)), nil
 			}
@@ -47,13 +58,9 @@ func (s *Server) SearchAlert() (tool mcp.Tool, handler server.ToolHandlerFunc) {
 		}
 }
 
-func (s *Server) ParseSearchAlertParams(ctx context.Context, req mcp.CallToolRequest, riskenClient *risken.Client) (*alert.ListAlertRequest, error) {
-	p, err := s.GetCurrentProject(ctx, riskenClient)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get project: %s", err)
-	}
+func (s *Server) parseSearchAlertParams(ctx context.Context, req mcp.CallToolRequest, riskenClient *risken.Client, signinResp *risken.SigninResponse) (*alert.ListAlertRequest, error) {
 	param := &alert.ListAlertRequest{
-		ProjectId: p.ProjectId,
+		ProjectId: signinResp.ProjectID,
 		Status:    []alert.Status{alert.Status_ACTIVE},
 	}
 

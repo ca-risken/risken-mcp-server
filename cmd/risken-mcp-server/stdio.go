@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
@@ -45,11 +46,29 @@ func runStdioServer() error {
 
 	// Create and start server
 	mcpserver := riskenmcp.NewServer(riskenClient, ServerName, ServerVersion, stdioLogger)
-	stdioLogger.Info(
-		"Starting RISKEN MCP server...",
-		slog.String("name", ServerName),
-		slog.String("version", ServerVersion),
-	)
+
+	// Signin to get token type info for logging
+	signinResp, err := riskenClient.Signin(context.Background())
+	if err != nil {
+		return fmt.Errorf("failed to signin: %w", err)
+	}
+	if signinResp.OrganizationID > 0 {
+		stdioLogger.Info(
+			"Starting RISKEN MCP server...",
+			slog.String("name", ServerName),
+			slog.String("version", ServerVersion),
+			slog.String("token_type", "organization"),
+			slog.Uint64("organization_id", uint64(signinResp.OrganizationID)),
+		)
+	} else {
+		stdioLogger.Info(
+			"Starting RISKEN MCP server...",
+			slog.String("name", ServerName),
+			slog.String("version", ServerVersion),
+			slog.String("token_type", "project"),
+			slog.Uint64("project_id", uint64(signinResp.ProjectID)),
+		)
+	}
 
 	// ServeStdio handles signal handling and error management internally
 	return server.ServeStdio(mcpserver.MCPServer)

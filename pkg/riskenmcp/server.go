@@ -49,7 +49,7 @@ func createRISKENMCPServer(s *server.MCPServer, riskenClient *risken.Client, log
 		logger:       logger,
 	}
 	s.AddResourceTemplate(mcpserver.GetFindingResource())
-	s.AddTool(mcpserver.GetProject())
+	s.AddTool(mcpserver.GetContext())
 	s.AddTool(mcpserver.SearchFinding())
 	s.AddTool(mcpserver.ArchiveFinding())
 	s.AddTool(mcpserver.SearchAlert())

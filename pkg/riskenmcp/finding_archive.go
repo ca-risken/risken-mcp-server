@@ -34,7 +34,7 @@ func (s *Server) ArchiveFinding() (tool mcp.Tool, handler server.ToolHandlerFunc
 			}
 
 			// Parse params
-			params, err := s.ParseArchiveFindingParams(ctx, req, riskenClient)
+			params, err := s.parseArchiveFindingParams(ctx, req, riskenClient)
 			if err != nil {
 				return mcp.NewToolResultError(fmt.Sprintf("failed to parse params: %s", err)), nil
 			}
@@ -52,26 +52,37 @@ func (s *Server) ArchiveFinding() (tool mcp.Tool, handler server.ToolHandlerFunc
 		}
 }
 
-func (s *Server) ParseArchiveFindingParams(ctx context.Context, req mcp.CallToolRequest, riskenClient *risken.Client) (*finding.PutPendFindingRequest, error) {
-	p, err := s.GetCurrentProject(ctx, riskenClient)
+func (s *Server) parseArchiveFindingParams(ctx context.Context, req mcp.CallToolRequest, riskenClient *risken.Client) (*finding.PutPendFindingRequest, error) {
+	// Determine token type via Signin
+	signinResp, err := riskenClient.Signin(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get project: %s", err)
-	}
-	param := &finding.PutPendFindingRequest{
-		ProjectId: p.ProjectId,
-		PendFinding: &finding.PendFindingForUpsert{
-			ProjectId: p.ProjectId,
-			ExpiredAt: time.Now().Add(time.Hour * 24 * 365 * 100).Unix(),
-		},
+		return nil, fmt.Errorf("failed to signin: %s", err)
 	}
 
 	findingID, err := helper.ParseMCPArgs[float64]("finding_id", req.GetArguments())
 	if err != nil {
 		return nil, fmt.Errorf("finding_id error: %s", err)
 	}
-	if findingID != nil {
-		param.PendFinding.FindingId = uint64(*findingID)
+	if findingID == nil {
+		return nil, fmt.Errorf("finding_id is required")
 	}
+
+	// Get project_id from finding
+	projectID, err := s.getProjectIDFromFinding(ctx, riskenClient, signinResp, uint64(*findingID))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get finding: %s", err)
+	}
+
+	// Build request
+	param := &finding.PutPendFindingRequest{
+		ProjectId: projectID,
+		PendFinding: &finding.PendFindingForUpsert{
+			ProjectId: projectID,
+			FindingId: uint64(*findingID),
+			ExpiredAt: time.Now().Add(time.Hour * 24 * 365 * 100).Unix(),
+		},
+	}
+
 	note, err := helper.ParseMCPArgs[string]("note", req.GetArguments())
 	if err != nil {
 		return nil, fmt.Errorf("note error: %s", err)
@@ -87,4 +98,35 @@ func (s *Server) ParseArchiveFindingParams(ctx context.Context, req mcp.CallTool
 	}
 
 	return param, nil
+}
+
+// getProjectIDFromFinding gets the project_id from the finding.
+func (s *Server) getProjectIDFromFinding(ctx context.Context, riskenClient *risken.Client, signinResp *risken.SigninResponse, findingID uint64) (uint32, error) {
+	if signinResp.OrganizationID > 0 {
+		// Organization token: use ListFindingForOrg
+		resp, err := riskenClient.ListFindingForOrg(ctx, &finding.ListFindingForOrgRequest{
+			OrganizationId: signinResp.OrganizationID,
+			FindingId:      findingID,
+			FromScore:      0.0,
+			Status:         finding.FindingStatus_FINDING_UNKNOWN,
+			Limit:          1,
+		})
+		if err != nil {
+			return 0, err
+		}
+		if len(resp.Findings) == 0 {
+			return 0, fmt.Errorf("finding not found: %d", findingID)
+		}
+		return resp.Findings[0].Finding.ProjectId, nil
+	}
+
+	// Project token: use GetFinding
+	resp, err := riskenClient.GetFinding(ctx, &finding.GetFindingRequest{
+		ProjectId: signinResp.ProjectID,
+		FindingId: findingID,
+	})
+	if err != nil {
+		return 0, err
+	}
+	return resp.Finding.ProjectId, nil
 }

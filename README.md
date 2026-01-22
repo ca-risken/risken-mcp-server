@@ -165,15 +165,16 @@ Your IdP must support the following OAuth features:
 
 ## Tools
 
-### Project
+### Context
 
-- **get_project** - Get RISKEN project.
+- **get_context** - Get the current authentication context.
+  - Returns Organization info if using Organization token, or Project info if using Project token.
 
 ### Finding
 
-- **search_finding** - Search RISKEN findings.
+- **search_finding** - Search RISKEN findings. (Supports both Organization and Project tokens)
   - `finding_id` - Search by finding ID.
-  - `alert_id` - Search by alert ID.
+  - `alert_id` - Search by alert ID. (Project token only)
   - `data_source` - Search by data source.
   - `resource_name` - Search by resource name.
   - `from_score` - Search by minimum score.
@@ -188,13 +189,13 @@ Your IdP must support the following OAuth features:
   - `offset` - Search by offset.
   - `limit` - Search by limit.
 
-- **archive_finding** - Archive RISKEN finding.
-  - `finding_id` - Archive by finding ID.
+- **archive_finding** - Archive RISKEN finding. (Supports both Organization and Project tokens)
+  - `finding_id` - Archive by finding ID. (Required)
   - `note` - Note.
 
 ### Alert
 
-- **search_alert** - Search RISKEN alert.
+- **search_alert** - Search RISKEN alert. (Project token only)
   - `status` - Search by status.
     - `1` - Active
     - `2` - Pending
